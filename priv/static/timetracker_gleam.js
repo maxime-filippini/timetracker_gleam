@@ -1,8 +1,8 @@
 // build/dev/javascript/prelude.mjs
 var CustomType = class {
   withFields(fields) {
-    let properties = Object.keys(this).map(
-      (label) => label in fields ? fields[label] : this[label]
+    let properties = Object.keys(this).map((label) =>
+      label in fields ? fields[label] : this[label]
     );
     return new this.constructor(...properties);
   }
@@ -24,8 +24,7 @@ var List = class {
   // @internal
   atLeastLength(desired) {
     for (let _ of this) {
-      if (desired <= 0)
-        return true;
+      if (desired <= 0) return true;
       desired--;
     }
     return desired <= 0;
@@ -33,16 +32,14 @@ var List = class {
   // @internal
   hasLength(desired) {
     for (let _ of this) {
-      if (desired <= 0)
-        return false;
+      if (desired <= 0) return false;
       desired--;
     }
     return desired === 0;
   }
   countLength() {
     let length2 = 0;
-    for (let _ of this)
-      length2++;
+    for (let _ of this) length2++;
     return length2;
   }
 };
@@ -64,8 +61,7 @@ var ListIterator = class {
     }
   }
 };
-var Empty = class extends List {
-};
+var Empty = class extends List {};
 var NonEmpty = class extends List {
   constructor(head, tail) {
     super();
@@ -105,14 +101,12 @@ function makeError(variant, module, line, fn, message, extra) {
   error.module = module;
   error.line = line;
   error.fn = fn;
-  for (let k in extra)
-    error[k] = extra[k];
+  for (let k in extra) error[k] = extra[k];
   return error;
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/option.mjs
-var None = class extends CustomType {
-};
+var None = class extends CustomType {};
 
 // build/dev/javascript/gleam_stdlib/dict.mjs
 var tempDataView = new DataView(new ArrayBuffer(8));
@@ -143,7 +137,7 @@ var unicode_whitespaces = [
   // Next line
   "\u2028",
   // Line separator
-  "\u2029"
+  "\u2029",
   // Paragraph separator
 ].join("");
 var left_trim_regex = new RegExp(`^([${unicode_whitespaces}]*)`, "g");
@@ -256,8 +250,7 @@ var Dispatch = class extends CustomType {
     this[0] = x0;
   }
 };
-var Shutdown = class extends CustomType {
-};
+var Shutdown = class extends CustomType {};
 var ForceModel = class extends CustomType {
   constructor(x0) {
     super();
@@ -271,8 +264,7 @@ function morph(prev, next, dispatch, isComponent = false) {
   let stack = [{ prev, next, parent: prev.parentNode }];
   while (stack.length) {
     let { prev: prev2, next: next2, parent } = stack.pop();
-    if (next2.subtree !== void 0)
-      next2 = next2.subtree();
+    if (next2.subtree !== void 0) next2 = next2.subtree();
     if (next2.content !== void 0) {
       if (!prev2) {
         const created = document.createTextNode(next2.content);
@@ -293,7 +285,7 @@ function morph(prev, next, dispatch, isComponent = false) {
         next: next2,
         dispatch,
         stack,
-        isComponent
+        isComponent,
       });
       if (!prev2) {
         parent.appendChild(created);
@@ -314,8 +306,16 @@ function morph(prev, next, dispatch, isComponent = false) {
 }
 function createElementNode({ prev, next, dispatch, stack }) {
   const namespace = next.namespace || "http://www.w3.org/1999/xhtml";
-  const canMorph = prev && prev.nodeType === Node.ELEMENT_NODE && prev.localName === next.tag && prev.namespaceURI === (next.namespace || "http://www.w3.org/1999/xhtml");
-  const el2 = canMorph ? prev : namespace ? document.createElementNS(namespace, next.tag) : document.createElement(next.tag);
+  const canMorph =
+    prev &&
+    prev.nodeType === Node.ELEMENT_NODE &&
+    prev.localName === next.tag &&
+    prev.namespaceURI === (next.namespace || "http://www.w3.org/1999/xhtml");
+  const el2 = canMorph
+    ? prev
+    : namespace
+    ? document.createElementNS(namespace, next.tag)
+    : document.createElement(next.tag);
   let handlersForEl;
   if (!registeredHandlers.has(el2)) {
     const emptyHandlers = /* @__PURE__ */ new Map();
@@ -325,7 +325,9 @@ function createElementNode({ prev, next, dispatch, stack }) {
     handlersForEl = registeredHandlers.get(el2);
   }
   const prevHandlers = canMorph ? new Set(handlersForEl.keys()) : null;
-  const prevAttributes = canMorph ? new Set(Array.from(prev.attributes, (a) => a.name)) : null;
+  const prevAttributes = canMorph
+    ? new Set(Array.from(prev.attributes, (a) => a.name))
+    : null;
   let className = null;
   let style = null;
   let innerHTML = null;
@@ -333,10 +335,8 @@ function createElementNode({ prev, next, dispatch, stack }) {
     const name = attr[0];
     const value = attr[1];
     if (attr.as_property) {
-      if (el2[name] !== value)
-        el2[name] = value;
-      if (canMorph)
-        prevAttributes.delete(name);
+      if (el2[name] !== value) el2[name] = value;
+      if (canMorph) prevAttributes.delete(name);
     } else if (name.startsWith("on")) {
       const eventName = name.slice(2);
       const callback = dispatch(value);
@@ -344,8 +344,7 @@ function createElementNode({ prev, next, dispatch, stack }) {
         el2.addEventListener(eventName, lustreGenericEventHandler);
       }
       handlersForEl.set(eventName, callback);
-      if (canMorph)
-        prevHandlers.delete(eventName);
+      if (canMorph) prevHandlers.delete(eventName);
     } else if (name.startsWith("data-lustre-on-")) {
       const eventName = name.slice(15);
       const callback = dispatch(lustreServerEventHandler);
@@ -361,23 +360,18 @@ function createElementNode({ prev, next, dispatch, stack }) {
     } else if (name === "dangerous-unescaped-html") {
       innerHTML = value;
     } else {
-      if (el2.getAttribute(name) !== value)
-        el2.setAttribute(name, value);
-      if (name === "value" || name === "selected")
-        el2[name] = value;
-      if (canMorph)
-        prevAttributes.delete(name);
+      if (el2.getAttribute(name) !== value) el2.setAttribute(name, value);
+      if (name === "value" || name === "selected") el2[name] = value;
+      if (canMorph) prevAttributes.delete(name);
     }
   }
   if (className !== null) {
     el2.setAttribute("class", className);
-    if (canMorph)
-      prevAttributes.delete("class");
+    if (canMorph) prevAttributes.delete("class");
   }
   if (style !== null) {
     el2.setAttribute("style", style);
-    if (canMorph)
-      prevAttributes.delete("style");
+    if (canMorph) prevAttributes.delete("style");
   }
   if (canMorph) {
     for (const attr of prevAttributes) {
@@ -399,9 +393,13 @@ function createElementNode({ prev, next, dispatch, stack }) {
   let keyedChildren = null;
   let incomingKeyedChildren = null;
   let firstChild = next.children[Symbol.iterator]().next().value;
-  if (canMorph && firstChild !== void 0 && // Explicit checks are more verbose but truthy checks force a bunch of comparisons
-  // we don't care about: it's never gonna be a number etc.
-  firstChild.key !== void 0 && firstChild.key !== "") {
+  if (
+    canMorph &&
+    firstChild !== void 0 && // Explicit checks are more verbose but truthy checks force a bunch of comparisons
+    // we don't care about: it's never gonna be a number etc.
+    firstChild.key !== void 0 &&
+    firstChild.key !== ""
+  ) {
     seenKeys = /* @__PURE__ */ new Set();
     keyedChildren = getKeyedChildren(prev);
     incomingKeyedChildren = getKeyedChildren(next);
@@ -473,7 +471,7 @@ function lustreServerEventHandler(event) {
         return data2;
       },
       { data }
-    )
+    ),
   };
 }
 function getKeyedChildren(el2) {
@@ -481,16 +479,27 @@ function getKeyedChildren(el2) {
   if (el2) {
     for (const child of el2.children) {
       iterateElement(child, (currElement) => {
-        const key = currElement?.key || currElement?.getAttribute?.("data-lustre-key");
-        if (key)
-          keyedChildren.set(key, currElement);
+        const key =
+          currElement?.key || currElement?.getAttribute?.("data-lustre-key");
+        if (key) keyedChildren.set(key, currElement);
       });
     }
   }
   return keyedChildren;
 }
-function diffKeyedChild(prevChild, child, el2, stack, incomingKeyedChildren, keyedChildren, seenKeys) {
-  while (prevChild && !incomingKeyedChildren.has(prevChild.getAttribute("data-lustre-key"))) {
+function diffKeyedChild(
+  prevChild,
+  child,
+  el2,
+  stack,
+  incomingKeyedChildren,
+  keyedChildren,
+  seenKeys
+) {
+  while (
+    prevChild &&
+    !incomingKeyedChildren.has(prevChild.getAttribute("data-lustre-key"))
+  ) {
     const nextChild = prevChild.nextSibling;
     el2.removeChild(prevChild);
     prevChild = nextChild;
@@ -551,15 +560,22 @@ var LustreClientApplication2 = class _LustreClientApplication {
   #update = null;
   #view = null;
   static start(flags, selector, init2, update, view) {
-    if (!is_browser())
-      return new Error(new NotABrowser());
-    const root2 = selector instanceof HTMLElement ? selector : document.querySelector(selector);
-    if (!root2)
-      return new Error(new ElementNotFound(selector));
+    if (!is_browser()) return new Error(new NotABrowser());
+    const root2 =
+      selector instanceof HTMLElement
+        ? selector
+        : document.querySelector(selector);
+    if (!root2) return new Error(new ElementNotFound(selector));
     const app = new _LustreClientApplication(init2(flags), update, view, root2);
     return new Ok((msg) => app.send(msg));
   }
-  constructor([model, effects], update, view, root2 = document.body, isComponent = false) {
+  constructor(
+    [model, effects],
+    update,
+    view,
+    root2 = document.body,
+    isComponent = false
+  ) {
     this.#model = model;
     this.#update = update;
     this.#view = view;
@@ -593,7 +609,7 @@ var LustreClientApplication2 = class _LustreClientApplication {
       new CustomEvent(event, {
         bubbles: true,
         detail: data,
-        composed: true
+        composed: true,
       })
     );
   }
@@ -656,19 +672,18 @@ var LustreClientApplication2 = class _LustreClientApplication {
     this.#queue = [];
     this.#effects = [];
     this.#didUpdate = false;
-    this.#update = () => {
-    };
-    this.#view = () => {
-    };
+    this.#update = () => {};
+    this.#view = () => {};
   }
 };
-var start = (app, selector, flags) => LustreClientApplication2.start(
-  flags,
-  selector,
-  app.init,
-  app.update,
-  app.view
-);
+var start = (app, selector, flags) =>
+  LustreClientApplication2.start(
+    flags,
+    selector,
+    app.init,
+    app.update,
+    app.view
+  );
 var is_browser = () => globalThis.window && window.document;
 
 // build/dev/javascript/lustre/lustre.mjs
@@ -687,8 +702,7 @@ var ElementNotFound = class extends CustomType {
     this.selector = selector;
   }
 };
-var NotABrowser = class extends CustomType {
-};
+var NotABrowser = class extends CustomType {};
 function application(init2, update, view) {
   return new App(init2, update, view, new None());
 }
@@ -705,13 +719,9 @@ function element2(html) {
   return application(init2, update, view);
 }
 function start3(app, selector, flags) {
-  return guard(
-    !is_browser(),
-    new Error(new NotABrowser()),
-    () => {
-      return start(app, selector, flags);
-    }
-  );
+  return guard(!is_browser(), new Error(new NotABrowser()), () => {
+    return start(app, selector, flags);
+  });
 }
 
 // build/dev/javascript/lustre/lustre/element/html.mjs
@@ -742,9 +752,9 @@ function main() {
           toList([]),
           toList([
             img(toList([src("https://cataas.com/cat")])),
-            figcaption(toList([]), toList([text("A cat!")]))
+            figcaption(toList([]), toList([text("A cat!")])),
           ])
-        )
+        ),
       ])
     )
   );
