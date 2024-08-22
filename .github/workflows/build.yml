@@ -35,8 +35,6 @@ jobs:
           cp -r priv dist/priv
       - name: Update path in index.html to use minified app
         run: sed -i 's|priv/static/timetracker_gleam.mjs|priv/static/timetracker_gleam.min.mjs|' dist/index.html
-      - name: run tailwind
-        run: npm run tw_build
       - name: push to site branch
         uses: s0/git-publish-subdir-action@develop
         env:
