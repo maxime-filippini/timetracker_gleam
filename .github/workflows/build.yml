@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: gleam deps download
       - name: Build app
-        run: gleam run -m lustre/dev build app --minify --ext=.js --detect-tailwind=True --tailwind-entry=./priv/input.css
+        run: gleam run -m lustre/dev build app --minify --ext=.min.js --detect-tailwind=True --tailwind-entry=./priv/input.css
       - name: Copy output to dist
         run: |
           mkdir -p dist
