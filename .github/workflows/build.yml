@@ -22,15 +22,12 @@ jobs:
       - name: Install dependencies
         run: gleam deps download
       - name: Build app
-        run: gleam run -m lustre/dev build app --minify
+        run: gleam run -m lustre/dev build app --minify --ext=.js --detect-tailwind=True --tailwind-entry=./priv/input.css
       - name: Copy output to dist
         run: |
           mkdir -p dist
           cp index.html dist/index.html
           cp -r priv dist/priv
-      - name: Rename files to js
-        run: |
-          mv dist/priv/static/timetracker_gleam.min.mjs dist/priv/static/timetracker_gleam.min.js
       - name: Update path in index.html to use minified app
         run: sed -i 's|priv/static/timetracker_gleam.mjs|priv/static/timetracker_gleam.min.js|' dist/index.html
       - name: push to site branch
