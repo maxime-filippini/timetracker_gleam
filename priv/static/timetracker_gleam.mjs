@@ -109,29 +109,29 @@ var BitArray = class _BitArray {
   }
 };
 var UtfCodepoint = class {
-  constructor(value2) {
-    this.value = value2;
+  constructor(value3) {
+    this.value = value3;
   }
 };
 function byteArrayToInt(byteArray, start4, end, isBigEndian, isSigned) {
-  let value2 = 0;
+  let value3 = 0;
   if (isBigEndian) {
     for (let i = start4; i < end; i++) {
-      value2 = value2 * 256 + byteArray[i];
+      value3 = value3 * 256 + byteArray[i];
     }
   } else {
     for (let i = end - 1; i >= start4; i--) {
-      value2 = value2 * 256 + byteArray[i];
+      value3 = value3 * 256 + byteArray[i];
     }
   }
   if (isSigned) {
     const byteSize = end - start4;
     const highBit = 2 ** (byteSize * 8 - 1);
-    if (value2 >= highBit) {
-      value2 -= highBit * 2;
+    if (value3 >= highBit) {
+      value3 -= highBit * 2;
     }
   }
-  return value2;
+  return value3;
 }
 function byteArrayToFloat(byteArray, start4, end, isBigEndian) {
   const view2 = new DataView(byteArray.buffer);
@@ -152,9 +152,9 @@ var Result = class _Result extends CustomType {
   }
 };
 var Ok = class extends Result {
-  constructor(value2) {
+  constructor(value3) {
     super();
-    this[0] = value2;
+    this[0] = value3;
   }
   // @internal
   isOk() {
@@ -264,6 +264,251 @@ var Some = class extends CustomType {
 };
 var None = class extends CustomType {
 };
+function to_result(option2, e) {
+  if (option2 instanceof Some) {
+    let a2 = option2[0];
+    return new Ok(a2);
+  } else {
+    return new Error(e);
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/list.mjs
+function do_reverse(loop$remaining, loop$accumulator) {
+  while (true) {
+    let remaining = loop$remaining;
+    let accumulator = loop$accumulator;
+    if (remaining.hasLength(0)) {
+      return accumulator;
+    } else {
+      let item = remaining.head;
+      let rest$1 = remaining.tail;
+      loop$remaining = rest$1;
+      loop$accumulator = prepend(item, accumulator);
+    }
+  }
+}
+function reverse(xs) {
+  return do_reverse(xs, toList([]));
+}
+function do_map(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let x = list.head;
+      let xs = list.tail;
+      loop$list = xs;
+      loop$fun = fun;
+      loop$acc = prepend(fun(x), acc);
+    }
+  }
+}
+function map(list, fun) {
+  return do_map(list, fun, toList([]));
+}
+function do_index_map(loop$list, loop$fun, loop$index, loop$acc) {
+  while (true) {
+    let list = loop$list;
+    let fun = loop$fun;
+    let index2 = loop$index;
+    let acc = loop$acc;
+    if (list.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let x = list.head;
+      let xs = list.tail;
+      let acc$1 = prepend(fun(x, index2), acc);
+      loop$list = xs;
+      loop$fun = fun;
+      loop$index = index2 + 1;
+      loop$acc = acc$1;
+    }
+  }
+}
+function index_map(list, fun) {
+  return do_index_map(list, fun, 0, toList([]));
+}
+function do_append(loop$first, loop$second) {
+  while (true) {
+    let first3 = loop$first;
+    let second2 = loop$second;
+    if (first3.hasLength(0)) {
+      return second2;
+    } else {
+      let item = first3.head;
+      let rest$1 = first3.tail;
+      loop$first = rest$1;
+      loop$second = prepend(item, second2);
+    }
+  }
+}
+function append(first3, second2) {
+  return do_append(reverse(first3), second2);
+}
+function fold(loop$list, loop$initial, loop$fun) {
+  while (true) {
+    let list = loop$list;
+    let initial = loop$initial;
+    let fun = loop$fun;
+    if (list.hasLength(0)) {
+      return initial;
+    } else {
+      let x = list.head;
+      let rest$1 = list.tail;
+      loop$list = rest$1;
+      loop$initial = fun(initial, x);
+      loop$fun = fun;
+    }
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/result.mjs
+function map2(result, fun) {
+  if (result.isOk()) {
+    let x = result[0];
+    return new Ok(fun(x));
+  } else {
+    let e = result[0];
+    return new Error(e);
+  }
+}
+function map_error(result, fun) {
+  if (result.isOk()) {
+    let x = result[0];
+    return new Ok(x);
+  } else {
+    let error = result[0];
+    return new Error(fun(error));
+  }
+}
+function try$(result, fun) {
+  if (result.isOk()) {
+    let x = result[0];
+    return fun(x);
+  } else {
+    let e = result[0];
+    return new Error(e);
+  }
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/string_builder.mjs
+function from_strings(strings) {
+  return concat(strings);
+}
+function from_string(string3) {
+  return identity(string3);
+}
+function to_string(builder) {
+  return identity(builder);
+}
+function split2(iodata, pattern) {
+  return split(iodata, pattern);
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function split3(x, substring) {
+  if (substring === "") {
+    return graphemes(x);
+  } else {
+    let _pipe = x;
+    let _pipe$1 = from_string(_pipe);
+    let _pipe$2 = split2(_pipe$1, substring);
+    return map(_pipe$2, to_string);
+  }
+}
+function inspect2(term) {
+  let _pipe = inspect(term);
+  return to_string(_pipe);
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
+var DecodeError = class extends CustomType {
+  constructor(expected, found, path) {
+    super();
+    this.expected = expected;
+    this.found = found;
+    this.path = path;
+  }
+};
+function classify(data) {
+  return classify_dynamic(data);
+}
+function int(data) {
+  return decode_int(data);
+}
+function any(decoders) {
+  return (data) => {
+    if (decoders.hasLength(0)) {
+      return new Error(
+        toList([new DecodeError("another type", classify(data), toList([]))])
+      );
+    } else {
+      let decoder = decoders.head;
+      let decoders$1 = decoders.tail;
+      let $ = decoder(data);
+      if ($.isOk()) {
+        let decoded = $[0];
+        return new Ok(decoded);
+      } else {
+        return any(decoders$1)(data);
+      }
+    }
+  };
+}
+function push_path(error, name2) {
+  let name$1 = identity(name2);
+  let decoder = any(
+    toList([string, (x) => {
+      return map2(int(x), to_string2);
+    }])
+  );
+  let name$2 = (() => {
+    let $ = decoder(name$1);
+    if ($.isOk()) {
+      let name$22 = $[0];
+      return name$22;
+    } else {
+      let _pipe = toList(["<", classify(name$1), ">"]);
+      let _pipe$1 = from_strings(_pipe);
+      return to_string(_pipe$1);
+    }
+  })();
+  return error.withFields({ path: prepend(name$2, error.path) });
+}
+function map_errors(result, f) {
+  return map_error(
+    result,
+    (_capture) => {
+      return map(_capture, f);
+    }
+  );
+}
+function string(data) {
+  return decode_string(data);
+}
+function field(name2, inner_type) {
+  return (value3) => {
+    let missing_field_error = new DecodeError("field", "nothing", toList([]));
+    return try$(
+      decode_field(value3, name2),
+      (maybe_inner) => {
+        let _pipe = maybe_inner;
+        let _pipe$1 = to_result(_pipe, toList([missing_field_error]));
+        let _pipe$2 = try$(_pipe$1, inner_type);
+        return map_errors(
+          _pipe$2,
+          (_capture) => {
+            return push_path(_capture, name2);
+          }
+        );
+      }
+    );
+  };
+}
 
 // build/dev/javascript/gleam_stdlib/dict.mjs
 var referenceMap = /* @__PURE__ */ new WeakMap();
@@ -964,17 +1209,18 @@ var Dict = class _Dict {
 
 // build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
 var Nil = void 0;
+var NOT_FOUND = {};
 function identity(x) {
   return x;
 }
-function parse_int(value2) {
-  if (/^[-+]?(\d+)$/.test(value2)) {
-    return new Ok(parseInt(value2));
+function parse_int(value3) {
+  if (/^[-+]?(\d+)$/.test(value3)) {
+    return new Ok(parseInt(value3));
   } else {
     return new Error(Nil);
   }
 }
-function to_string(term) {
+function to_string3(term) {
   return term.toString();
 }
 function graphemes(string3) {
@@ -992,6 +1238,13 @@ function graphemes_iterator(string3) {
 }
 function split(xs, pattern) {
   return List.fromArray(xs.split(pattern));
+}
+function concat(xs) {
+  let result = "";
+  for (const x of xs) {
+    result = result + x;
+  }
+  return result;
 }
 var unicode_whitespaces = [
   " ",
@@ -1025,6 +1278,75 @@ function print_debug(string3) {
     Deno.stderr.writeSync(new TextEncoder().encode(string3 + "\n"));
   } else {
     console.log(string3);
+  }
+}
+function map_get(map5, key) {
+  const value3 = map5.get(key, NOT_FOUND);
+  if (value3 === NOT_FOUND) {
+    return new Error(Nil);
+  }
+  return new Ok(value3);
+}
+function classify_dynamic(data) {
+  if (typeof data === "string") {
+    return "String";
+  } else if (typeof data === "boolean") {
+    return "Bool";
+  } else if (data instanceof Result) {
+    return "Result";
+  } else if (data instanceof List) {
+    return "List";
+  } else if (data instanceof BitArray) {
+    return "BitArray";
+  } else if (data instanceof Dict) {
+    return "Dict";
+  } else if (Number.isInteger(data)) {
+    return "Int";
+  } else if (Array.isArray(data)) {
+    return `Tuple of ${data.length} elements`;
+  } else if (typeof data === "number") {
+    return "Float";
+  } else if (data === null) {
+    return "Null";
+  } else if (data === void 0) {
+    return "Nil";
+  } else {
+    const type = typeof data;
+    return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+}
+function decoder_error(expected, got) {
+  return decoder_error_no_classify(expected, classify_dynamic(got));
+}
+function decoder_error_no_classify(expected, got) {
+  return new Error(
+    List.fromArray([new DecodeError(expected, got, List.fromArray([]))])
+  );
+}
+function decode_string(data) {
+  return typeof data === "string" ? new Ok(data) : decoder_error("String", data);
+}
+function decode_int(data) {
+  return Number.isInteger(data) ? new Ok(data) : decoder_error("Int", data);
+}
+function decode_field(value3, name2) {
+  const not_a_map_error = () => decoder_error("Dict", value3);
+  if (value3 instanceof Dict || value3 instanceof WeakMap || value3 instanceof Map) {
+    const entry = map_get(value3, name2);
+    return new Ok(entry.isOk() ? new Some(entry[0]) : new None());
+  } else if (value3 === null) {
+    return not_a_map_error();
+  } else if (Object.getPrototypeOf(value3) == Object.prototype) {
+    return try_get_field(value3, name2, () => new Ok(new None()));
+  } else {
+    return try_get_field(value3, name2, not_a_map_error);
+  }
+}
+function try_get_field(value3, field2, or_else) {
+  try {
+    return field2 in value3 ? new Ok(new Some(value3[field2])) : or_else();
+  } catch {
+    return or_else();
   }
 }
 function inspect(v) {
@@ -1104,10 +1426,10 @@ function inspectString(str) {
 function inspectDict(map5) {
   let body = "dict.from_list([";
   let first3 = true;
-  map5.forEach((value2, key) => {
+  map5.forEach((value3, key) => {
     if (!first3)
       body = body + ", ";
-    body = body + "#(" + inspect(key) + ", " + inspect(value2) + ")";
+    body = body + "#(" + inspect(key) + ", " + inspect(value3) + ")";
     first3 = false;
   });
   return body + "])";
@@ -1124,8 +1446,8 @@ function inspectObject(v) {
 }
 function inspectCustomType(record) {
   const props = Object.keys(record).map((label2) => {
-    const value2 = inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value2}` : value2;
+    const value3 = inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
   }).join(", ");
   return props ? `${record.constructor.name}(${props})` : record.constructor.name;
 }
@@ -1144,127 +1466,7 @@ function parse(string3) {
   return parse_int(string3);
 }
 function to_string2(x) {
-  return to_string(x);
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/list.mjs
-function do_reverse(loop$remaining, loop$accumulator) {
-  while (true) {
-    let remaining = loop$remaining;
-    let accumulator = loop$accumulator;
-    if (remaining.hasLength(0)) {
-      return accumulator;
-    } else {
-      let item = remaining.head;
-      let rest$1 = remaining.tail;
-      loop$remaining = rest$1;
-      loop$accumulator = prepend(item, accumulator);
-    }
-  }
-}
-function reverse(xs) {
-  return do_reverse(xs, toList([]));
-}
-function do_map(loop$list, loop$fun, loop$acc) {
-  while (true) {
-    let list = loop$list;
-    let fun = loop$fun;
-    let acc = loop$acc;
-    if (list.hasLength(0)) {
-      return reverse(acc);
-    } else {
-      let x = list.head;
-      let xs = list.tail;
-      loop$list = xs;
-      loop$fun = fun;
-      loop$acc = prepend(fun(x), acc);
-    }
-  }
-}
-function map(list, fun) {
-  return do_map(list, fun, toList([]));
-}
-function do_index_map(loop$list, loop$fun, loop$index, loop$acc) {
-  while (true) {
-    let list = loop$list;
-    let fun = loop$fun;
-    let index2 = loop$index;
-    let acc = loop$acc;
-    if (list.hasLength(0)) {
-      return reverse(acc);
-    } else {
-      let x = list.head;
-      let xs = list.tail;
-      let acc$1 = prepend(fun(x, index2), acc);
-      loop$list = xs;
-      loop$fun = fun;
-      loop$index = index2 + 1;
-      loop$acc = acc$1;
-    }
-  }
-}
-function index_map(list, fun) {
-  return do_index_map(list, fun, 0, toList([]));
-}
-function do_append(loop$first, loop$second) {
-  while (true) {
-    let first3 = loop$first;
-    let second2 = loop$second;
-    if (first3.hasLength(0)) {
-      return second2;
-    } else {
-      let item = first3.head;
-      let rest$1 = first3.tail;
-      loop$first = rest$1;
-      loop$second = prepend(item, second2);
-    }
-  }
-}
-function append(first3, second2) {
-  return do_append(reverse(first3), second2);
-}
-function fold(loop$list, loop$initial, loop$fun) {
-  while (true) {
-    let list = loop$list;
-    let initial = loop$initial;
-    let fun = loop$fun;
-    if (list.hasLength(0)) {
-      return initial;
-    } else {
-      let x = list.head;
-      let rest$1 = list.tail;
-      loop$list = rest$1;
-      loop$initial = fun(initial, x);
-      loop$fun = fun;
-    }
-  }
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/string_builder.mjs
-function from_string(string3) {
-  return identity(string3);
-}
-function to_string3(builder) {
-  return identity(builder);
-}
-function split2(iodata, pattern) {
-  return split(iodata, pattern);
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/string.mjs
-function split3(x, substring) {
-  if (substring === "") {
-    return graphemes(x);
-  } else {
-    let _pipe = x;
-    let _pipe$1 = from_string(_pipe);
-    let _pipe$2 = split2(_pipe$1, substring);
-    return map(_pipe$2, to_string3);
-  }
-}
-function inspect2(term) {
-  let _pipe = inspect(term);
-  return to_string3(_pipe);
+  return to_string3(x);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/io.mjs
@@ -1293,13 +1495,13 @@ var Uri = class extends CustomType {
 };
 function do_remove_dot_segments(loop$input, loop$accumulator) {
   while (true) {
-    let input = loop$input;
+    let input2 = loop$input;
     let accumulator = loop$accumulator;
-    if (input.hasLength(0)) {
+    if (input2.hasLength(0)) {
       return reverse(accumulator);
     } else {
-      let segment = input.head;
-      let rest = input.tail;
+      let segment = input2.head;
+      let rest = input2.tail;
       let accumulator$1 = (() => {
         if (segment === "") {
           let accumulator$12 = accumulator;
@@ -1323,8 +1525,8 @@ function do_remove_dot_segments(loop$input, loop$accumulator) {
     }
   }
 }
-function remove_dot_segments(input) {
-  return do_remove_dot_segments(input, toList([]));
+function remove_dot_segments(input2) {
+  return do_remove_dot_segments(input2, toList([]));
 }
 function path_segments(path) {
   return remove_dot_segments(split3(path, "/"));
@@ -1403,8 +1605,8 @@ var Event = class extends CustomType {
 };
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
-function attribute(name2, value2) {
-  return new Attribute(name2, identity(value2), false);
+function attribute(name2, value3) {
+  return new Attribute(name2, identity(value3), false);
 }
 function on(name2, handler) {
   return new Event("on" + name2, handler);
@@ -1554,15 +1756,15 @@ function createElementNode({ prev, next, dispatch, stack }) {
   let innerHTML = null;
   for (const attr of next.attrs) {
     const name2 = attr[0];
-    const value2 = attr[1];
+    const value3 = attr[1];
     if (attr.as_property) {
-      if (el2[name2] !== value2)
-        el2[name2] = value2;
+      if (el2[name2] !== value3)
+        el2[name2] = value3;
       if (canMorph)
         prevAttributes.delete(name2);
     } else if (name2.startsWith("on")) {
       const eventName = name2.slice(2);
-      const callback = dispatch(value2);
+      const callback = dispatch(value3);
       if (!handlersForEl.has(eventName)) {
         el2.addEventListener(eventName, lustreGenericEventHandler);
       }
@@ -1576,18 +1778,18 @@ function createElementNode({ prev, next, dispatch, stack }) {
         el2.addEventListener(eventName, lustreGenericEventHandler);
       }
       handlersForEl.set(eventName, callback);
-      el2.setAttribute(name2, value2);
+      el2.setAttribute(name2, value3);
     } else if (name2 === "class") {
-      className = className === null ? value2 : className + " " + value2;
+      className = className === null ? value3 : className + " " + value3;
     } else if (name2 === "style") {
-      style = style === null ? value2 : style + value2;
+      style = style === null ? value3 : style + value3;
     } else if (name2 === "dangerous-unescaped-html") {
-      innerHTML = value2;
+      innerHTML = value3;
     } else {
-      if (el2.getAttribute(name2) !== value2)
-        el2.setAttribute(name2, value2);
+      if (el2.getAttribute(name2) !== value3)
+        el2.setAttribute(name2, value3);
       if (name2 === "value" || name2 === "selected")
-        el2[name2] = value2;
+        el2[name2] = value3;
       if (canMorph)
         prevAttributes.delete(name2);
     }
@@ -1893,6 +2095,7 @@ var start = (app, selector, flags) => LustreClientApplication2.start(
   app.view
 );
 var is_browser = () => globalThis.window && window.document;
+var prevent_default = (event2) => event2.preventDefault();
 
 // build/dev/javascript/lustre/lustre.mjs
 var App = class extends CustomType {
@@ -1977,6 +2180,9 @@ function button(attrs, children) {
 function form(attrs, children) {
   return element("form", attrs, children);
 }
+function input(attrs) {
+  return element("input", attrs, toList([]));
+}
 function label(attrs, children) {
   return element("label", attrs, children);
 }
@@ -1995,6 +2201,30 @@ function on_click(msg) {
   return on2("click", (_) => {
     return new Ok(msg);
   });
+}
+function value2(event2) {
+  let _pipe = event2;
+  return field("target", field("value", string))(
+    _pipe
+  );
+}
+function on_input(msg) {
+  return on2(
+    "input",
+    (event2) => {
+      let _pipe = value2(event2);
+      return map2(_pipe, msg);
+    }
+  );
+}
+function on_submit(msg) {
+  return on2(
+    "submit",
+    (event2) => {
+      let $ = prevent_default(event2);
+      return new Ok(msg);
+    }
+  );
 }
 
 // build/dev/javascript/modem/modem.ffi.mjs
@@ -2098,8 +2328,8 @@ function init2(handler) {
 }
 
 // build/dev/javascript/timetracker_gleam/ffi.mjs
-function writeToLocalStorage(key, value2) {
-  window.localStorage.setItem(key, String(value2));
+function writeToLocalStorage(key, value3) {
+  window.localStorage.setItem(key, String(value3));
 }
 function readFromLocalStorage(key) {
   let out = window.localStorage.getItem(key);
@@ -2133,13 +2363,16 @@ var WorkItem = class extends CustomType {
   }
 };
 var Model = class extends CustomType {
-  constructor(current_route, count, current_task, task_options, work_items) {
+  constructor(current_route, count, current_task, task_options, work_items, new_work_item_id, new_work_item_label, new_work_item_modal_open) {
     super();
     this.current_route = current_route;
     this.count = count;
     this.current_task = current_task;
     this.task_options = task_options;
     this.work_items = work_items;
+    this.new_work_item_id = new_work_item_id;
+    this.new_work_item_label = new_work_item_label;
+    this.new_work_item_modal_open = new_work_item_modal_open;
   }
 };
 var UserIncrementedCount = class extends CustomType {
@@ -2156,9 +2389,30 @@ var OnRouteChange = class extends CustomType {
 };
 var UserClickedAddWorkItem = class extends CustomType {
 };
-var ModalOpened = class extends CustomType {
+var UserOpenedNewItemModal = class extends CustomType {
+};
+var UserClosedNewItemModal = class extends CustomType {
 };
 var UserCancelledAddWorkItem = class extends CustomType {
+};
+var UserUpdatedInputOfNewWorkItemId = class extends CustomType {
+  constructor(id2) {
+    super();
+    this.id = id2;
+  }
+};
+var UserUpdatedInputOfNewWorkItemLabel = class extends CustomType {
+  constructor(label2) {
+    super();
+    this.label = label2;
+  }
+};
+var UserAttemptedToAddNewItem = class extends CustomType {
+  constructor(id2, label2) {
+    super();
+    this.id = id2;
+    this.label = label2;
+  }
 };
 var NavItem = class extends CustomType {
   constructor(url, title, route) {
@@ -2390,39 +2644,123 @@ function work_items_table(model) {
   );
 }
 function work_item_modal(model) {
-  return div(
+  let $ = (() => {
+    let $1 = model.new_work_item_modal_open;
+    if ($1) {
+      return ["block", ""];
+    } else {
+      return ["hidden", "scale-75"];
+    }
+  })();
+  let modal_display_cls = $[0];
+  let modal_size = $[1];
+  let actual_modal = div(
     toList([
       id("modal-add-work-item"),
       class$(
-        "bg-bg transition-opacity ease-in opacity-100 duration-500 absolute top-0 left-0 w-screen h-screen overflow-hidden hidden z-1 flex flex-col"
+        "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 opacity-100 rounded-lg flex flex-col gap-4 p-4 z-999 duration-2000 transition" + modal_size
+      )
+    ]),
+    toList([
+      h2(
+        toList([class$("text-xl font-semibold")]),
+        toList([text2("Add new work item")])
+      ),
+      form(
+        toList([
+          class$("flex flex-col gap-4"),
+          on_submit(
+            new UserAttemptedToAddNewItem(
+              model.new_work_item_id,
+              model.new_work_item_label
+            )
+          )
+        ]),
+        toList([
+          div(
+            toList([class$("flex justify-center gap-4")]),
+            toList([
+              label(
+                toList([class$("mb-1 mt-1 min-w-32")]),
+                toList([text2("ID:")])
+              ),
+              input(
+                toList([
+                  id("id-work-item"),
+                  class$("text-bg rounded-md grow px-4 py-1"),
+                  value(model.new_work_item_id),
+                  on_input(
+                    (var0) => {
+                      return new UserUpdatedInputOfNewWorkItemId(var0);
+                    }
+                  )
+                ])
+              )
+            ])
+          ),
+          div(
+            toList([class$("flex justify-center gap-4")]),
+            toList([
+              label(
+                toList([class$("mb-1 mt-1 min-w-32")]),
+                toList([text2("Label:")])
+              ),
+              input(
+                toList([
+                  id("label-work-item"),
+                  class$("text-bg rounded-md grow px-4 py-1"),
+                  value(model.new_work_item_label),
+                  on_input(
+                    (var0) => {
+                      return new UserUpdatedInputOfNewWorkItemLabel(var0);
+                    }
+                  )
+                ])
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([class$("flex w-full gap-4")]),
+        toList([
+          button(
+            toList([
+              class$("h-8 rounded-lg bg-teal-300 text-bg w-1/2"),
+              on_click(new UserCancelledAddWorkItem())
+            ]),
+            toList([text2("Save")])
+          ),
+          button(
+            toList([
+              class$("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
+              on_click(new UserCancelledAddWorkItem())
+            ]),
+            toList([text2("Cancel")])
+          )
+        ])
+      )
+    ])
+  );
+  let background = div(
+    toList([
+      id("modal-bg"),
+      class$("bg-bg opacity-90 w-screen h-screen z-990"),
+      on_click(new UserCancelledAddWorkItem())
+    ]),
+    toList([])
+  );
+  return div(
+    toList([
+      id("modal-add-work-item-container"),
+      class$(
+        "absolute top-0 left-0 w-screen h-screen overflow-hidden z-1 flex flex-col " + modal_display_cls
       )
     ]),
     toList([
       div(
         toList([class$("w-full h-full relative")]),
-        toList([
-          div(
-            toList([
-              class$(
-                "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 rounded-lg flex flex-col p-4"
-              )
-            ]),
-            toList([
-              h2(
-                toList([class$("text-xl font-semibold")]),
-                toList([text2("Add new work item")])
-              ),
-              div(toList([class$("h-64")]), toList([])),
-              button(
-                toList([
-                  class$("h-8 rounded-lg bg-red-400 text-bg"),
-                  on_click(new UserCancelledAddWorkItem())
-                ]),
-                toList([text2("Cancel")])
-              )
-            ])
-          )
-        ])
+        toList([background, actual_modal])
       )
     ])
   );
@@ -2464,7 +2802,7 @@ function view(model) {
   return div(
     toList([
       class$(
-        "text-white container mx-auto max-w-5xl mt-8 flex flex-col gap-4"
+        "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4"
       )
     ]),
     toList([
@@ -2476,12 +2814,6 @@ function view(model) {
       work_item_modal(model)
     ])
   );
-}
-function close_modal() {
-  removeClassFromElement("modal-add-work-item", "block");
-  removeClassFromElement("modal-add-work-item", "opacity-90");
-  addClassToElement("modal-add-work-item", "hidden");
-  return addClassToElement("modal-add-work-item", "opacity-100");
 }
 function write_model_to_local_storage(model) {
   let s_count = to_string2(model.count);
@@ -2501,15 +2833,27 @@ function update(model, msg) {
       }
     } else if (msg instanceof UserResetCount) {
       return model.withFields({ count: 0 });
-    } else if (msg instanceof UserClickedAddWorkItem) {
-      return model;
     } else if (msg instanceof OnRouteChange) {
       let route = msg[0];
       println("On route change triggered");
       return model.withFields({ current_route: route });
-    } else if (msg instanceof ModalOpened) {
+    } else if (msg instanceof UserClickedAddWorkItem) {
       return model;
+    } else if (msg instanceof UserOpenedNewItemModal) {
+      return model.withFields({ new_work_item_modal_open: true });
+    } else if (msg instanceof UserClosedNewItemModal) {
+      return model.withFields({ new_work_item_modal_open: false });
+    } else if (msg instanceof UserCancelledAddWorkItem) {
+      return model.withFields({ new_work_item_id: "", new_work_item_label: "" });
+    } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
+      let id2 = msg.id;
+      return model.withFields({ new_work_item_id: id2 });
+    } else if (msg instanceof UserUpdatedInputOfNewWorkItemLabel) {
+      let label2 = msg.label;
+      return model.withFields({ new_work_item_label: label2 });
     } else {
+      let id2 = msg.id;
+      let label2 = msg.label;
       return model;
     }
   })();
@@ -2527,23 +2871,39 @@ function update(model, msg) {
       return from(
         (dispatch) => {
           debug("Modal opened");
-          return dispatch(new ModalOpened());
+          return dispatch(new UserOpenedNewItemModal());
         }
       );
     } else if (msg instanceof OnRouteChange) {
       return none();
-    } else if (msg instanceof ModalOpened) {
+    } else if (msg instanceof UserOpenedNewItemModal) {
       return from(
         (_) => {
-          removeClassFromElement("modal-add-work-item", "hidden");
-          addClassToElement("modal-add-work-item", "block");
-          return addClassToElement("modal-add-work-item", "opacity-90");
+          return removeClassFromElement("modal-add-work-item", "scale-75");
         }
       );
+    } else if (msg instanceof UserClosedNewItemModal) {
+      return from(
+        (_) => {
+          return addClassToElement("modal-add-work-item", "scale-75");
+        }
+      );
+    } else if (msg instanceof UserCancelledAddWorkItem) {
+      return from(
+        (dispatch) => {
+          return dispatch(new UserClosedNewItemModal());
+        }
+      );
+    } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
+      let id2 = msg.id;
+      return none();
+    } else if (msg instanceof UserUpdatedInputOfNewWorkItemLabel) {
+      let label2 = msg.label;
+      return none();
     } else {
-      return from((_) => {
-        return close_modal();
-      });
+      let id2 = msg.id;
+      let label2 = msg.label;
+      return none();
     }
   })();
   return [model$1, effect];
@@ -2571,7 +2931,16 @@ function init3(_) {
   ]);
   let my_effect = batch(toList([init2(on_route_change)]));
   return [
-    new Model(new Tracker(), count, "", toList([]), init_work_items),
+    new Model(
+      new Tracker(),
+      count,
+      "",
+      toList([]),
+      init_work_items,
+      "",
+      "",
+      false
+    ),
     my_effect
   ];
 }
@@ -2582,7 +2951,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      358,
+      441,
       "main",
       "Assignment pattern did not match",
       { value: $ }
