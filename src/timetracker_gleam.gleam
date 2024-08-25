@@ -1,12 +1,10 @@
-import gleam/dynamic.{type Dynamic, DecodeError}
-import gleam/float
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/uri.{type Uri}
 import lustre
 import lustre/attribute
-import lustre/effect.{type Effect}
+import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
@@ -29,6 +27,9 @@ type Model {
     current_task: String,
     task_options: List(#(String, String)),
     work_items: List(WorkItem),
+    new_work_item_id: String,
+    new_work_item_label: String,
+    new_work_item_modal_open: Bool,
   )
 }
 
@@ -42,8 +43,12 @@ pub opaque type Msg {
   UserResetCount
   OnRouteChange(Route)
   UserClickedAddWorkItem
-  ModalOpened
+  UserOpenedNewItemModal
+  UserClosedNewItemModal
   UserCancelledAddWorkItem
+  UserUpdatedInputOfNewWorkItemId(id: String)
+  UserUpdatedInputOfNewWorkItemLabel(label: String)
+  UserAttemptedToAddNewItem(id: String, label: String)
 }
 
 /// Routing
@@ -85,6 +90,9 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       current_task: "",
       task_options: [],
       work_items: init_work_items,
+      new_work_item_id: "",
+      new_work_item_label: "",
+      new_work_item_modal_open: False,
     ),
     my_effect,
   )
@@ -98,9 +106,7 @@ fn write_model_to_local_storage(model: Model) -> Nil {
 
 fn close_modal() {
   do_remove_class_from_element("modal-add-work-item", "block")
-  do_remove_class_from_element("modal-add-work-item", "opacity-90")
   do_add_class_to_element("modal-add-work-item", "hidden")
-  do_add_class_to_element("modal-add-work-item", "opacity-100")
 }
 
 /// This updates the model based on a received message
@@ -114,13 +120,19 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
         False -> Model(..model, count: 0)
       }
     UserResetCount -> Model(..model, count: 0)
-    UserClickedAddWorkItem -> model
     OnRouteChange(route) -> {
       io.println("On route change triggered")
       Model(..model, current_route: route)
     }
-    ModalOpened -> model
-    UserCancelledAddWorkItem -> model
+    UserClickedAddWorkItem -> model
+    UserOpenedNewItemModal -> Model(..model, new_work_item_modal_open: True)
+    UserClosedNewItemModal -> Model(..model, new_work_item_modal_open: False)
+    UserCancelledAddWorkItem ->
+      Model(..model, new_work_item_id: "", new_work_item_label: "")
+    UserUpdatedInputOfNewWorkItemId(id) -> Model(..model, new_work_item_id: id)
+    UserUpdatedInputOfNewWorkItemLabel(label) ->
+      Model(..model, new_work_item_label: label)
+    UserAttemptedToAddNewItem(id, label) -> model
   }
 
   let persist_model = fn(_) { write_model_to_local_storage(model) }
@@ -132,16 +144,23 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserClickedAddWorkItem ->
       effect.from(fn(dispatch) {
         io.debug("Modal opened")
-        dispatch(ModalOpened)
+        dispatch(UserOpenedNewItemModal)
       })
     OnRouteChange(_route) -> effect.none()
-    ModalOpened ->
+    UserOpenedNewItemModal ->
       effect.from(fn(_) {
-        do_remove_class_from_element("modal-add-work-item", "hidden")
-        do_add_class_to_element("modal-add-work-item", "block")
-        do_add_class_to_element("modal-add-work-item", "opacity-90")
+        do_remove_class_from_element("modal-add-work-item", "scale-75")
       })
-    UserCancelledAddWorkItem -> effect.from(fn(_) { close_modal() })
+    UserClosedNewItemModal ->
+      effect.from(fn(_) {
+        do_add_class_to_element("modal-add-work-item", "scale-75")
+      })
+    UserCancelledAddWorkItem -> {
+      effect.from(fn(dispatch) { dispatch(UserClosedNewItemModal) })
+    }
+    UserUpdatedInputOfNewWorkItemId(id) -> effect.none()
+    UserUpdatedInputOfNewWorkItemLabel(label) -> effect.none()
+    UserAttemptedToAddNewItem(id, label) -> effect.none()
   }
 
   #(model, effect)
@@ -266,35 +285,99 @@ fn work_items_table(model: Model) {
 }
 
 fn work_item_modal(model: Model) {
+  let #(modal_display_cls, modal_size) = case model.new_work_item_modal_open {
+    True -> #("block", "")
+    False -> #("hidden", "scale-75")
+  }
+
+  let actual_modal =
+    html.div(
+      [
+        attribute.id("modal-add-work-item"),
+        attribute.class(
+          "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 opacity-100 rounded-lg flex flex-col gap-4 p-4 z-999 duration-2000 transition"
+          <> modal_size,
+        ),
+      ],
+      [
+        html.h2([attribute.class("text-xl font-semibold")], [
+          html.text("Add new work item"),
+        ]),
+        html.form(
+          [
+            attribute.class("flex flex-col gap-4"),
+            event.on_submit(UserAttemptedToAddNewItem(
+              id: model.new_work_item_id,
+              label: model.new_work_item_label,
+            )),
+          ],
+          // TODO CHANGE EVENT
+          [
+            html.div([attribute.class("flex justify-center gap-4")], [
+              html.label([attribute.class("mb-1 mt-1 min-w-32")], [
+                html.text("ID:"),
+              ]),
+              html.input([
+                attribute.id("id-work-item"),
+                attribute.class("text-bg rounded-md grow px-4 py-1"),
+                attribute.value(model.new_work_item_id),
+                event.on_input(UserUpdatedInputOfNewWorkItemId),
+              ]),
+            ]),
+            html.div([attribute.class("flex justify-center gap-4")], [
+              html.label([attribute.class("mb-1 mt-1 min-w-32")], [
+                html.text("Label:"),
+              ]),
+              html.input([
+                attribute.id("label-work-item"),
+                attribute.class("text-bg rounded-md grow px-4 py-1"),
+                attribute.value(model.new_work_item_label),
+                event.on_input(UserUpdatedInputOfNewWorkItemLabel),
+              ]),
+            ]),
+          ],
+        ),
+        html.div([attribute.class("flex w-full gap-4")], [
+          html.button(
+            [
+              attribute.class("h-8 rounded-lg bg-teal-300 text-bg w-1/2"),
+              event.on_click(UserCancelledAddWorkItem),
+            ],
+            [html.text("Save")],
+          ),
+          html.button(
+            [
+              attribute.class("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
+              event.on_click(UserCancelledAddWorkItem),
+            ],
+            [html.text("Cancel")],
+          ),
+        ]),
+      ],
+    )
+
+  let background =
+    html.div(
+      [
+        attribute.id("modal-bg"),
+        attribute.class("bg-bg opacity-90 w-screen h-screen z-990"),
+        event.on_click(UserCancelledAddWorkItem),
+      ],
+      [],
+    )
+
   html.div(
     [
-      attribute.id("modal-add-work-item"),
+      attribute.id("modal-add-work-item-container"),
       attribute.class(
-        "bg-bg transition-opacity ease-in opacity-100 duration-500 absolute top-0 left-0 w-screen h-screen overflow-hidden hidden z-1 flex flex-col",
+        "absolute top-0 left-0 w-screen h-screen overflow-hidden z-1 flex flex-col "
+        <> modal_display_cls,
       ),
     ],
     [
       html.div([attribute.class("w-full h-full relative")], [
-        html.div(
-          [
-            attribute.class(
-              "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 rounded-lg flex flex-col p-4",
-            ),
-          ],
-          [
-            html.h2([attribute.class("text-xl font-semibold")], [
-              html.text("Add new work item"),
-            ]),
-            html.div([attribute.class("h-64")], []),
-            html.button(
-              [
-                attribute.class("h-8 rounded-lg bg-red-400 text-bg"),
-                event.on_click(UserCancelledAddWorkItem),
-              ],
-              [html.text("Cancel")],
-            ),
-          ],
-        ),
+        background,
+        actual_modal,
       ]),
     ],
   )
@@ -339,7 +422,7 @@ fn view(model: Model) -> element.Element(Msg) {
   html.div(
     [
       attribute.class(
-        "text-white container mx-auto max-w-5xl mt-8 flex flex-col gap-4",
+        "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4",
       ),
     ],
     [
