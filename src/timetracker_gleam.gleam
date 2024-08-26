@@ -262,7 +262,7 @@ fn work_item_modal(model: Model) {
       [
         attribute.id("modal-add-work-item"),
         attribute.class(
-          "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 opacity-100 rounded-lg flex flex-col gap-4 p-4 z-999 duration-2000 transition"
+          "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 opacity-100 rounded-lg flex flex-col gap-4 p-4 z-999 duration-2000 transition "
           <> modal_size,
         ),
       ],
