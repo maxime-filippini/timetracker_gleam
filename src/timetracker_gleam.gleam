@@ -1,6 +1,10 @@
+import decoders
+import gleam/dynamic
 import gleam/int
 import gleam/io
+import gleam/json
 import gleam/list
+import gleam/result
 import gleam/uri.{type Uri}
 import lustre
 import lustre/attribute
@@ -8,88 +12,45 @@ import lustre/effect
 import lustre/element
 import lustre/element/html
 import lustre/event
+import model.{type Model, Model}
 import modem
-
-pub type Route {
-  Tracker
-  WorkItems
-  Analytics
-}
-
-type WorkItem {
-  WorkItem(id: String, label: String)
-}
-
-type Model {
-  Model(
-    current_route: Route,
-    count: Int,
-    current_task: String,
-    task_options: List(#(String, String)),
-    work_items: List(WorkItem),
-    new_work_item_id: String,
-    new_work_item_label: String,
-    new_work_item_modal_open: Bool,
-  )
-}
+import router
 
 pub type LocalStorageData {
-  LocalStorageData(count: Int)
+  LocalStorageData(count: Int, work_items: List(model.WorkItem))
 }
 
 pub opaque type Msg {
   UserIncrementedCount
   UserDecrementedCount
   UserResetCount
-  OnRouteChange(Route)
-  UserClickedAddWorkItem
+  OnRouteChange(router.Route)
   UserOpenedNewItemModal
   UserClosedNewItemModal
-  UserCancelledAddWorkItem
   UserUpdatedInputOfNewWorkItemId(id: String)
   UserUpdatedInputOfNewWorkItemLabel(label: String)
   UserAttemptedToAddNewItem(id: String, label: String)
 }
 
-/// Routing
-/// 
-fn on_route_change(uri: Uri) -> Msg {
-  case uri.path_segments(uri.path) {
-    ["work-items"] -> OnRouteChange(WorkItems)
-    ["analytics"] -> OnRouteChange(Analytics)
-    _ -> OnRouteChange(Tracker)
-  }
+fn on_url_change(uri: Uri) -> Msg {
+  router.on_route_change(uri) |> OnRouteChange()
 }
 
 /// This initializes the model
 /// 
 fn init(_flags) -> #(Model, effect.Effect(Msg)) {
-  // Read the count from local storage
-  // If there is any kind of failure to read, we set the count to 0 for now
-  let count = case do_read("count") {
-    Ok(count_str) ->
-      case int.parse(count_str) {
-        Ok(val) -> val
-        _ -> 0
-      }
-    _ -> 0
-  }
+  let assert Ok(local_storage_model) =
+    decoders.local_storage_from_json(read_model_info_from_local_storage())
 
-  let init_work_items = [
-    WorkItem("hi", "Hi"),
-    WorkItem("bye", "Bye"),
-    WorkItem("ciao", "Ciao"),
-  ]
-
-  let my_effect = effect.batch([modem.init(on_route_change)])
+  let my_effect = effect.batch([modem.init(on_url_change)])
 
   #(
-    Model(
-      current_route: Tracker,
-      count:,
+    model.Model(
+      current_route: router.init(),
+      count: local_storage_model.count,
       current_task: "",
       task_options: [],
-      work_items: init_work_items,
+      work_items: local_storage_model.work_items,
       new_work_item_id: "",
       new_work_item_label: "",
       new_work_item_modal_open: False,
@@ -109,6 +70,10 @@ fn close_modal() {
   do_add_class_to_element("modal-add-work-item", "hidden")
 }
 
+fn validate_new_item(id: String, label: String) {
+  todo
+}
+
 /// This updates the model based on a received message
 /// 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
@@ -124,15 +89,22 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       io.println("On route change triggered")
       Model(..model, current_route: route)
     }
-    UserClickedAddWorkItem -> model
     UserOpenedNewItemModal -> Model(..model, new_work_item_modal_open: True)
-    UserClosedNewItemModal -> Model(..model, new_work_item_modal_open: False)
-    UserCancelledAddWorkItem ->
-      Model(..model, new_work_item_id: "", new_work_item_label: "")
+    UserClosedNewItemModal ->
+      Model(
+        ..model,
+        new_work_item_modal_open: False,
+        new_work_item_id: "",
+        new_work_item_label: "",
+      )
     UserUpdatedInputOfNewWorkItemId(id) -> Model(..model, new_work_item_id: id)
     UserUpdatedInputOfNewWorkItemLabel(label) ->
       Model(..model, new_work_item_label: label)
-    UserAttemptedToAddNewItem(id, label) -> model
+    UserAttemptedToAddNewItem(id, label) -> {
+      let new_work_item = model.WorkItem(id: id, label: label)
+
+      Model(..model, work_items: list.append(model.work_items, [new_work_item]))
+    }
   }
 
   let persist_model = fn(_) { write_model_to_local_storage(model) }
@@ -141,26 +113,16 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserIncrementedCount -> effect.from(persist_model)
     UserDecrementedCount -> effect.from(persist_model)
     UserResetCount -> effect.from(persist_model)
-    UserClickedAddWorkItem ->
-      effect.from(fn(dispatch) {
-        io.debug("Modal opened")
-        dispatch(UserOpenedNewItemModal)
-      })
     OnRouteChange(_route) -> effect.none()
-    UserOpenedNewItemModal ->
-      effect.from(fn(_) {
-        do_remove_class_from_element("modal-add-work-item", "scale-75")
-      })
-    UserClosedNewItemModal ->
-      effect.from(fn(_) {
-        do_add_class_to_element("modal-add-work-item", "scale-75")
-      })
-    UserCancelledAddWorkItem -> {
-      effect.from(fn(dispatch) { dispatch(UserClosedNewItemModal) })
-    }
+    UserOpenedNewItemModal -> effect.none()
+    UserClosedNewItemModal -> effect.none()
     UserUpdatedInputOfNewWorkItemId(id) -> effect.none()
     UserUpdatedInputOfNewWorkItemLabel(label) -> effect.none()
-    UserAttemptedToAddNewItem(id, label) -> effect.none()
+    UserAttemptedToAddNewItem(id, label) ->
+      effect.from(fn(dispatch) {
+        write_work_items_to_local_storage(model.work_items)
+        dispatch(UserClosedNewItemModal)
+      })
   }
 
   #(model, effect)
@@ -341,14 +303,17 @@ fn work_item_modal(model: Model) {
           html.button(
             [
               attribute.class("h-8 rounded-lg bg-teal-300 text-bg w-1/2"),
-              event.on_click(UserCancelledAddWorkItem),
+              event.on_click(UserAttemptedToAddNewItem(
+                id: model.new_work_item_id,
+                label: model.new_work_item_label,
+              )),
             ],
             [html.text("Save")],
           ),
           html.button(
             [
               attribute.class("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
-              event.on_click(UserCancelledAddWorkItem),
+              event.on_click(UserClosedNewItemModal),
             ],
             [html.text("Cancel")],
           ),
@@ -361,7 +326,7 @@ fn work_item_modal(model: Model) {
       [
         attribute.id("modal-bg"),
         attribute.class("bg-bg opacity-90 w-screen h-screen z-990"),
-        event.on_click(UserCancelledAddWorkItem),
+        event.on_click(UserClosedNewItemModal),
       ],
       [],
     )
@@ -389,7 +354,7 @@ fn view_work_items(model: Model) {
     html.button(
       [
         attribute.class("bg-catp-green w-full h-8 rounded-lg text-bg"),
-        event.on_click(UserClickedAddWorkItem),
+        event.on_click(UserOpenedNewItemModal),
       ],
       [html.text("Add new item")],
     ),
@@ -401,22 +366,22 @@ fn view_analytics(model: Model) {
 }
 
 type NavItem {
-  NavItem(url: String, title: String, route: Route)
+  NavItem(url: String, title: String, route: router.Route)
 }
 
 /// This is the UI of our app
 /// 
 fn view(model: Model) -> element.Element(Msg) {
   let nav_items = [
-    NavItem(url: "/", title: "Tracker", route: Tracker),
-    NavItem(url: "/work-items", title: "Work Items", route: WorkItems),
-    NavItem(url: "/analytics", title: "Analytics", route: Analytics),
+    NavItem(url: "/", title: "Tracker", route: router.Tracker),
+    NavItem(url: "/work-items", title: "Work Items", route: router.WorkItems),
+    NavItem(url: "/analytics", title: "Analytics", route: router.Analytics),
   ]
 
   let page_content = case model.current_route {
-    Tracker -> view_tracker(model)
-    WorkItems -> view_work_items(model)
-    Analytics -> view_analytics(model)
+    router.Tracker -> view_tracker(model)
+    router.WorkItems -> view_work_items(model)
+    router.Analytics -> view_analytics(model)
   }
 
   html.div(
@@ -465,4 +430,14 @@ pub fn do_write(key: String, value: String) -> Nil {
 @external(javascript, "./ffi.mjs", "readFromLocalStorage")
 pub fn do_read(key: String) -> Result(String, Nil) {
   Error(Nil)
+}
+
+@external(javascript, "./ffi.mjs", "readModelInfoFromLocalStorage")
+fn read_model_info_from_local_storage() -> String {
+  todo
+}
+
+@external(javascript, "./ffi.mjs", "writeWorkItemsToLocalStorage")
+fn write_work_items_to_local_storage(lst: List(model.WorkItem)) -> Nil {
+  Nil
 }

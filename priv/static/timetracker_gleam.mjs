@@ -273,6 +273,11 @@ function to_result(option2, e) {
   }
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/int.mjs
+function to_string2(x) {
+  return to_string(x);
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 function do_reverse(loop$remaining, loop$accumulator) {
   while (true) {
@@ -293,34 +298,34 @@ function reverse(xs) {
 }
 function do_map(loop$list, loop$fun, loop$acc) {
   while (true) {
-    let list = loop$list;
+    let list2 = loop$list;
     let fun = loop$fun;
     let acc = loop$acc;
-    if (list.hasLength(0)) {
+    if (list2.hasLength(0)) {
       return reverse(acc);
     } else {
-      let x = list.head;
-      let xs = list.tail;
+      let x = list2.head;
+      let xs = list2.tail;
       loop$list = xs;
       loop$fun = fun;
       loop$acc = prepend(fun(x), acc);
     }
   }
 }
-function map(list, fun) {
-  return do_map(list, fun, toList([]));
+function map(list2, fun) {
+  return do_map(list2, fun, toList([]));
 }
 function do_index_map(loop$list, loop$fun, loop$index, loop$acc) {
   while (true) {
-    let list = loop$list;
+    let list2 = loop$list;
     let fun = loop$fun;
     let index2 = loop$index;
     let acc = loop$acc;
-    if (list.hasLength(0)) {
+    if (list2.hasLength(0)) {
       return reverse(acc);
     } else {
-      let x = list.head;
-      let xs = list.tail;
+      let x = list2.head;
+      let xs = list2.tail;
       let acc$1 = prepend(fun(x, index2), acc);
       loop$list = xs;
       loop$fun = fun;
@@ -329,8 +334,34 @@ function do_index_map(loop$list, loop$fun, loop$index, loop$acc) {
     }
   }
 }
-function index_map(list, fun) {
-  return do_index_map(list, fun, 0, toList([]));
+function index_map(list2, fun) {
+  return do_index_map(list2, fun, 0, toList([]));
+}
+function do_try_map(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list2 = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list2.hasLength(0)) {
+      return new Ok(reverse(acc));
+    } else {
+      let x = list2.head;
+      let xs = list2.tail;
+      let $ = fun(x);
+      if ($.isOk()) {
+        let y = $[0];
+        loop$list = xs;
+        loop$fun = fun;
+        loop$acc = prepend(y, acc);
+      } else {
+        let error = $[0];
+        return new Error(error);
+      }
+    }
+  }
+}
+function try_map(list2, fun) {
+  return do_try_map(list2, fun, toList([]));
 }
 function do_append(loop$first, loop$second) {
   while (true) {
@@ -349,16 +380,47 @@ function do_append(loop$first, loop$second) {
 function append(first3, second2) {
   return do_append(reverse(first3), second2);
 }
+function reverse_and_prepend(loop$prefix, loop$suffix) {
+  while (true) {
+    let prefix = loop$prefix;
+    let suffix = loop$suffix;
+    if (prefix.hasLength(0)) {
+      return suffix;
+    } else {
+      let first$1 = prefix.head;
+      let rest$1 = prefix.tail;
+      loop$prefix = rest$1;
+      loop$suffix = prepend(first$1, suffix);
+    }
+  }
+}
+function do_concat(loop$lists, loop$acc) {
+  while (true) {
+    let lists = loop$lists;
+    let acc = loop$acc;
+    if (lists.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let list2 = lists.head;
+      let further_lists = lists.tail;
+      loop$lists = further_lists;
+      loop$acc = reverse_and_prepend(list2, acc);
+    }
+  }
+}
+function concat(lists) {
+  return do_concat(lists, toList([]));
+}
 function fold(loop$list, loop$initial, loop$fun) {
   while (true) {
-    let list = loop$list;
+    let list2 = loop$list;
     let initial = loop$initial;
     let fun = loop$fun;
-    if (list.hasLength(0)) {
+    if (list2.hasLength(0)) {
       return initial;
     } else {
-      let x = list.head;
-      let rest$1 = list.tail;
+      let x = list2.head;
+      let rest$1 = list2.tail;
       loop$list = rest$1;
       loop$initial = fun(initial, x);
       loop$fun = fun;
@@ -394,35 +456,22 @@ function try$(result, fun) {
     return new Error(e);
   }
 }
+function then$(result, fun) {
+  return try$(result, fun);
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/string_builder.mjs
 function from_strings(strings) {
-  return concat(strings);
+  return concat2(strings);
 }
 function from_string(string3) {
   return identity(string3);
 }
-function to_string(builder) {
+function to_string3(builder) {
   return identity(builder);
 }
 function split2(iodata, pattern) {
   return split(iodata, pattern);
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/string.mjs
-function split3(x, substring) {
-  if (substring === "") {
-    return graphemes(x);
-  } else {
-    let _pipe = x;
-    let _pipe$1 = from_string(_pipe);
-    let _pipe$2 = split2(_pipe$1, substring);
-    return map(_pipe$2, to_string);
-  }
-}
-function inspect2(term) {
-  let _pipe = inspect(term);
-  return to_string(_pipe);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
@@ -439,6 +488,9 @@ function classify(data) {
 }
 function int(data) {
   return decode_int(data);
+}
+function shallow_list(value3) {
+  return decode_list(value3);
 }
 function any(decoders) {
   return (data) => {
@@ -459,6 +511,14 @@ function any(decoders) {
     }
   };
 }
+function all_errors(result) {
+  if (result.isOk()) {
+    return toList([]);
+  } else {
+    let errors = result[0];
+    return errors;
+  }
+}
 function push_path(error, name2) {
   let name$1 = identity(name2);
   let decoder = any(
@@ -474,10 +534,27 @@ function push_path(error, name2) {
     } else {
       let _pipe = toList(["<", classify(name$1), ">"]);
       let _pipe$1 = from_strings(_pipe);
-      return to_string(_pipe$1);
+      return to_string3(_pipe$1);
     }
   })();
   return error.withFields({ path: prepend(name$2, error.path) });
+}
+function list(decoder_type) {
+  return (dynamic) => {
+    return try$(
+      shallow_list(dynamic),
+      (list2) => {
+        let _pipe = list2;
+        let _pipe$1 = try_map(_pipe, decoder_type);
+        return map_errors(
+          _pipe$1,
+          (_capture) => {
+            return push_path(_capture, "*");
+          }
+        );
+      }
+    );
+  };
 }
 function map_errors(result, f) {
   return map_error(
@@ -507,6 +584,21 @@ function field(name2, inner_type) {
         );
       }
     );
+  };
+}
+function decode2(constructor, t1, t2) {
+  return (value3) => {
+    let $ = t1(value3);
+    let $1 = t2(value3);
+    if ($.isOk() && $1.isOk()) {
+      let a2 = $[0];
+      let b = $1[0];
+      return new Ok(constructor(a2, b));
+    } else {
+      let a2 = $;
+      let b = $1;
+      return new Error(concat(toList([all_errors(a2), all_errors(b)])));
+    }
   };
 }
 
@@ -1213,14 +1305,7 @@ var NOT_FOUND = {};
 function identity(x) {
   return x;
 }
-function parse_int(value3) {
-  if (/^[-+]?(\d+)$/.test(value3)) {
-    return new Ok(parseInt(value3));
-  } else {
-    return new Error(Nil);
-  }
-}
-function to_string3(term) {
+function to_string(term) {
   return term.toString();
 }
 function graphemes(string3) {
@@ -1239,7 +1324,7 @@ function graphemes_iterator(string3) {
 function split(xs, pattern) {
   return List.fromArray(xs.split(pattern));
 }
-function concat(xs) {
+function concat2(xs) {
   let result = "";
   for (const x of xs) {
     result = result + x;
@@ -1328,6 +1413,12 @@ function decode_string(data) {
 }
 function decode_int(data) {
   return Number.isInteger(data) ? new Ok(data) : decoder_error("Int", data);
+}
+function decode_list(data) {
+  if (Array.isArray(data)) {
+    return new Ok(List.fromArray(data));
+  }
+  return data instanceof List ? new Ok(data) : decoder_error("List", data);
 }
 function decode_field(value3, name2) {
   const not_a_map_error = () => decoder_error("Dict", value3);
@@ -1451,8 +1542,8 @@ function inspectCustomType(record) {
   }).join(", ");
   return props ? `${record.constructor.name}(${props})` : record.constructor.name;
 }
-function inspectList(list) {
-  return `[${list.toArray().map(inspect).join(", ")}]`;
+function inspectList(list2) {
+  return `[${list2.toArray().map(inspect).join(", ")}]`;
 }
 function inspectBitArray(bits) {
   return `<<${Array.from(bits.buffer).join(", ")}>>`;
@@ -1461,12 +1552,142 @@ function inspectUtfCodepoint(codepoint2) {
   return `//utfcodepoint(${String.fromCodePoint(codepoint2.value)})`;
 }
 
-// build/dev/javascript/gleam_stdlib/gleam/int.mjs
-function parse(string3) {
-  return parse_int(string3);
+// build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function split3(x, substring) {
+  if (substring === "") {
+    return graphemes(x);
+  } else {
+    let _pipe = x;
+    let _pipe$1 = from_string(_pipe);
+    let _pipe$2 = split2(_pipe$1, substring);
+    return map(_pipe$2, to_string3);
+  }
 }
-function to_string2(x) {
-  return to_string3(x);
+function inspect2(term) {
+  let _pipe = inspect(term);
+  return to_string3(_pipe);
+}
+
+// build/dev/javascript/gleam_json/gleam_json_ffi.mjs
+function decode(string3) {
+  try {
+    const result = JSON.parse(string3);
+    return new Ok(result);
+  } catch (err) {
+    return new Error(getJsonDecodeError(err, string3));
+  }
+}
+function getJsonDecodeError(stdErr, json) {
+  if (isUnexpectedEndOfInput(stdErr))
+    return new UnexpectedEndOfInput();
+  return toUnexpectedByteError(stdErr, json);
+}
+function isUnexpectedEndOfInput(err) {
+  const unexpectedEndOfInputRegex = /((unexpected (end|eof))|(end of data)|(unterminated string)|(json( parse error|\.parse)\: expected '(\:|\}|\])'))/i;
+  return unexpectedEndOfInputRegex.test(err.message);
+}
+function toUnexpectedByteError(err, json) {
+  let converters = [
+    v8UnexpectedByteError,
+    oldV8UnexpectedByteError,
+    jsCoreUnexpectedByteError,
+    spidermonkeyUnexpectedByteError
+  ];
+  for (let converter of converters) {
+    let result = converter(err, json);
+    if (result)
+      return result;
+  }
+  return new UnexpectedByte("", 0);
+}
+function v8UnexpectedByteError(err) {
+  const regex = /unexpected token '(.)', ".+" is not valid JSON/i;
+  const match = regex.exec(err.message);
+  if (!match)
+    return null;
+  const byte = toHex(match[1]);
+  return new UnexpectedByte(byte, -1);
+}
+function oldV8UnexpectedByteError(err) {
+  const regex = /unexpected token (.) in JSON at position (\d+)/i;
+  const match = regex.exec(err.message);
+  if (!match)
+    return null;
+  const byte = toHex(match[1]);
+  const position = Number(match[2]);
+  return new UnexpectedByte(byte, position);
+}
+function spidermonkeyUnexpectedByteError(err, json) {
+  const regex = /(unexpected character|expected .*) at line (\d+) column (\d+)/i;
+  const match = regex.exec(err.message);
+  if (!match)
+    return null;
+  const line = Number(match[2]);
+  const column = Number(match[3]);
+  const position = getPositionFromMultiline(line, column, json);
+  const byte = toHex(json[position]);
+  return new UnexpectedByte(byte, position);
+}
+function jsCoreUnexpectedByteError(err) {
+  const regex = /unexpected (identifier|token) "(.)"/i;
+  const match = regex.exec(err.message);
+  if (!match)
+    return null;
+  const byte = toHex(match[2]);
+  return new UnexpectedByte(byte, 0);
+}
+function toHex(char) {
+  return "0x" + char.charCodeAt(0).toString(16).toUpperCase();
+}
+function getPositionFromMultiline(line, column, string3) {
+  if (line === 1)
+    return column - 1;
+  let currentLn = 1;
+  let position = 0;
+  string3.split("").find((char, idx) => {
+    if (char === "\n")
+      currentLn += 1;
+    if (currentLn === line) {
+      position = idx + column;
+      return true;
+    }
+    return false;
+  });
+  return position;
+}
+
+// build/dev/javascript/gleam_json/gleam/json.mjs
+var UnexpectedEndOfInput = class extends CustomType {
+};
+var UnexpectedByte = class extends CustomType {
+  constructor(byte, position) {
+    super();
+    this.byte = byte;
+    this.position = position;
+  }
+};
+var UnexpectedFormat = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+function do_decode(json, decoder) {
+  return then$(
+    decode(json),
+    (dynamic_value) => {
+      let _pipe = decoder(dynamic_value);
+      return map_error(
+        _pipe,
+        (var0) => {
+          return new UnexpectedFormat(var0);
+        }
+      );
+    }
+  );
+}
+function decode3(json, decoder) {
+  return do_decode(json, decoder);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/io.mjs
@@ -1975,13 +2196,13 @@ var LustreClientApplication2 = class _LustreClientApplication {
   #model = null;
   #update = null;
   #view = null;
-  static start(flags, selector, init4, update2, view2) {
+  static start(flags, selector, init5, update2, view2) {
     if (!is_browser())
       return new Error(new NotABrowser());
     const root2 = selector instanceof HTMLElement ? selector : document.querySelector(selector);
     if (!root2)
       return new Error(new ElementNotFound(selector));
-    const app = new _LustreClientApplication(init4(flags), update2, view2, root2);
+    const app = new _LustreClientApplication(init5(flags), update2, view2, root2);
     return new Ok((msg) => app.send(msg));
   }
   constructor([model, effects], update2, view2, root2 = document.body, isComponent = false) {
@@ -2099,9 +2320,9 @@ var prevent_default = (event2) => event2.preventDefault();
 
 // build/dev/javascript/lustre/lustre.mjs
 var App = class extends CustomType {
-  constructor(init4, update2, view2, on_attribute_change) {
+  constructor(init5, update2, view2, on_attribute_change) {
     super();
-    this.init = init4;
+    this.init = init5;
     this.update = update2;
     this.view = view2;
     this.on_attribute_change = on_attribute_change;
@@ -2115,8 +2336,8 @@ var ElementNotFound = class extends CustomType {
 };
 var NotABrowser = class extends CustomType {
 };
-function application(init4, update2, view2) {
-  return new App(init4, update2, view2, new None());
+function application(init5, update2, view2) {
+  return new App(init5, update2, view2, new None());
 }
 function start3(app, selector, flags) {
   return guard(
@@ -2327,34 +2548,28 @@ function init2(handler) {
   );
 }
 
-// build/dev/javascript/timetracker_gleam/ffi.mjs
-function writeToLocalStorage(key, value3) {
-  window.localStorage.setItem(key, String(value3));
-}
-function readFromLocalStorage(key) {
-  let out = window.localStorage.getItem(key);
-  return out ? new Ok(out) : new Error(void 0);
-}
-function addClassToElement(elementId, classToAdd) {
-  let elt = document.getElementById(elementId);
-  if (elt) {
-    elt.classList.add(classToAdd);
-  }
-}
-function removeClassFromElement(elementId, classToRemove) {
-  let elt = document.getElementById(elementId);
-  if (elt) {
-    elt.classList.remove(classToRemove);
-  }
-}
-
-// build/dev/javascript/timetracker_gleam/timetracker_gleam.mjs
+// build/dev/javascript/timetracker_gleam/router.mjs
 var Tracker = class extends CustomType {
 };
 var WorkItems = class extends CustomType {
 };
 var Analytics = class extends CustomType {
 };
+function on_route_change(uri) {
+  let $ = path_segments(uri.path);
+  if ($.hasLength(1) && $.head === "work-items") {
+    return new WorkItems();
+  } else if ($.hasLength(1) && $.head === "analytics") {
+    return new Analytics();
+  } else {
+    return new Tracker();
+  }
+}
+function init3() {
+  return new Tracker();
+}
+
+// build/dev/javascript/timetracker_gleam/model.mjs
 var WorkItem = class extends CustomType {
   constructor(id2, label2) {
     super();
@@ -2375,6 +2590,63 @@ var Model = class extends CustomType {
     this.new_work_item_modal_open = new_work_item_modal_open;
   }
 };
+
+// build/dev/javascript/timetracker_gleam/decoders.mjs
+var LocalStorageModel = class extends CustomType {
+  constructor(count, work_items) {
+    super();
+    this.count = count;
+    this.work_items = work_items;
+  }
+};
+function work_item() {
+  return decode2(
+    (var0, var1) => {
+      return new WorkItem(var0, var1);
+    },
+    field("id", string),
+    field("label", string)
+  );
+}
+function local_storage_model() {
+  return decode2(
+    (var0, var1) => {
+      return new LocalStorageModel(var0, var1);
+    },
+    field("count", int),
+    field("work_items", list(work_item()))
+  );
+}
+function local_storage_from_json(json_string) {
+  let out = decode3(json_string, local_storage_model());
+  return debug(out);
+}
+
+// build/dev/javascript/timetracker_gleam/ffi.mjs
+function writeToLocalStorage(key, value3) {
+  window.localStorage.setItem(key, String(value3));
+}
+function readModelInfoFromLocalStorage() {
+  let count = window.localStorage.getItem("count");
+  let workItems = window.localStorage.getItem("work_items");
+  count = count ? JSON.parse(count) : 0;
+  workItems = workItems ? JSON.parse(workItems) : [];
+  let out = JSON.stringify({ count, work_items: workItems });
+  return out;
+}
+function linkedListToArray(list2) {
+  if (list2 instanceof Empty) {
+    return [];
+  } else {
+    return [list2.head].concat(linkedListToArray(list2.tail));
+  }
+}
+function writeWorkItemsToLocalStorage(lst) {
+  let js_lst = linkedListToArray(lst);
+  window.localStorage.setItem("work_items", JSON.stringify(js_lst));
+}
+
+// build/dev/javascript/timetracker_gleam/timetracker_gleam.mjs
 var UserIncrementedCount = class extends CustomType {
 };
 var UserDecrementedCount = class extends CustomType {
@@ -2387,13 +2659,9 @@ var OnRouteChange = class extends CustomType {
     this[0] = x0;
   }
 };
-var UserClickedAddWorkItem = class extends CustomType {
-};
 var UserOpenedNewItemModal = class extends CustomType {
 };
 var UserClosedNewItemModal = class extends CustomType {
-};
-var UserCancelledAddWorkItem = class extends CustomType {
 };
 var UserUpdatedInputOfNewWorkItemId = class extends CustomType {
   constructor(id2) {
@@ -2422,15 +2690,9 @@ var NavItem = class extends CustomType {
     this.route = route;
   }
 };
-function on_route_change(uri) {
-  let $ = path_segments(uri.path);
-  if ($.hasLength(1) && $.head === "work-items") {
-    return new OnRouteChange(new WorkItems());
-  } else if ($.hasLength(1) && $.head === "analytics") {
-    return new OnRouteChange(new Analytics());
-  } else {
-    return new OnRouteChange(new Tracker());
-  }
+function on_url_change(uri) {
+  let _pipe = on_route_change(uri);
+  return new OnRouteChange(_pipe);
 }
 function header() {
   return div(
@@ -2727,14 +2989,19 @@ function work_item_modal(model) {
           button(
             toList([
               class$("h-8 rounded-lg bg-teal-300 text-bg w-1/2"),
-              on_click(new UserCancelledAddWorkItem())
+              on_click(
+                new UserAttemptedToAddNewItem(
+                  model.new_work_item_id,
+                  model.new_work_item_label
+                )
+              )
             ]),
             toList([text2("Save")])
           ),
           button(
             toList([
               class$("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
-              on_click(new UserCancelledAddWorkItem())
+              on_click(new UserClosedNewItemModal())
             ]),
             toList([text2("Cancel")])
           )
@@ -2746,7 +3013,7 @@ function work_item_modal(model) {
     toList([
       id("modal-bg"),
       class$("bg-bg opacity-90 w-screen h-screen z-990"),
-      on_click(new UserCancelledAddWorkItem())
+      on_click(new UserClosedNewItemModal())
     ]),
     toList([])
   );
@@ -2773,7 +3040,7 @@ function view_work_items(model) {
       button(
         toList([
           class$("bg-catp-green w-full h-8 rounded-lg text-bg"),
-          on_click(new UserClickedAddWorkItem())
+          on_click(new UserOpenedNewItemModal())
         ]),
         toList([text2("Add new item")])
       )
@@ -2820,6 +3087,36 @@ function write_model_to_local_storage(model) {
   debug("Writing model to local storage: count=" + s_count);
   return writeToLocalStorage("count", s_count);
 }
+function init4(_) {
+  let $ = local_storage_from_json(
+    readModelInfoFromLocalStorage()
+  );
+  if (!$.isOk()) {
+    throw makeError(
+      "assignment_no_match",
+      "timetracker_gleam",
+      42,
+      "init",
+      "Assignment pattern did not match",
+      { value: $ }
+    );
+  }
+  let local_storage_model2 = $[0];
+  let my_effect = batch(toList([init2(on_url_change)]));
+  return [
+    new Model(
+      init3(),
+      local_storage_model2.count,
+      "",
+      toList([]),
+      local_storage_model2.work_items,
+      "",
+      "",
+      false
+    ),
+    my_effect
+  ];
+}
 function update(model, msg) {
   let model$1 = (() => {
     if (msg instanceof UserIncrementedCount) {
@@ -2837,14 +3134,14 @@ function update(model, msg) {
       let route = msg[0];
       println("On route change triggered");
       return model.withFields({ current_route: route });
-    } else if (msg instanceof UserClickedAddWorkItem) {
-      return model;
     } else if (msg instanceof UserOpenedNewItemModal) {
       return model.withFields({ new_work_item_modal_open: true });
     } else if (msg instanceof UserClosedNewItemModal) {
-      return model.withFields({ new_work_item_modal_open: false });
-    } else if (msg instanceof UserCancelledAddWorkItem) {
-      return model.withFields({ new_work_item_id: "", new_work_item_label: "" });
+      return model.withFields({
+        new_work_item_modal_open: false,
+        new_work_item_id: "",
+        new_work_item_label: ""
+      });
     } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
       let id2 = msg.id;
       return model.withFields({ new_work_item_id: id2 });
@@ -2854,7 +3151,10 @@ function update(model, msg) {
     } else {
       let id2 = msg.id;
       let label2 = msg.label;
-      return model;
+      let new_work_item = new WorkItem(id2, label2);
+      return model.withFields({
+        work_items: append(model.work_items, toList([new_work_item]))
+      });
     }
   })();
   let persist_model = (_) => {
@@ -2867,33 +3167,12 @@ function update(model, msg) {
       return from(persist_model);
     } else if (msg instanceof UserResetCount) {
       return from(persist_model);
-    } else if (msg instanceof UserClickedAddWorkItem) {
-      return from(
-        (dispatch) => {
-          debug("Modal opened");
-          return dispatch(new UserOpenedNewItemModal());
-        }
-      );
     } else if (msg instanceof OnRouteChange) {
       return none();
     } else if (msg instanceof UserOpenedNewItemModal) {
-      return from(
-        (_) => {
-          return removeClassFromElement("modal-add-work-item", "scale-75");
-        }
-      );
+      return none();
     } else if (msg instanceof UserClosedNewItemModal) {
-      return from(
-        (_) => {
-          return addClassToElement("modal-add-work-item", "scale-75");
-        }
-      );
-    } else if (msg instanceof UserCancelledAddWorkItem) {
-      return from(
-        (dispatch) => {
-          return dispatch(new UserClosedNewItemModal());
-        }
-      );
+      return none();
     } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
       let id2 = msg.id;
       return none();
@@ -2903,55 +3182,24 @@ function update(model, msg) {
     } else {
       let id2 = msg.id;
       let label2 = msg.label;
-      return none();
+      return from(
+        (dispatch) => {
+          writeWorkItemsToLocalStorage(model$1.work_items);
+          return dispatch(new UserClosedNewItemModal());
+        }
+      );
     }
   })();
   return [model$1, effect];
 }
-function init3(_) {
-  let count = (() => {
-    let $ = readFromLocalStorage("count");
-    if ($.isOk()) {
-      let count_str = $[0];
-      let $1 = parse(count_str);
-      if ($1.isOk()) {
-        let val = $1[0];
-        return val;
-      } else {
-        return 0;
-      }
-    } else {
-      return 0;
-    }
-  })();
-  let init_work_items = toList([
-    new WorkItem("hi", "Hi"),
-    new WorkItem("bye", "Bye"),
-    new WorkItem("ciao", "Ciao")
-  ]);
-  let my_effect = batch(toList([init2(on_route_change)]));
-  return [
-    new Model(
-      new Tracker(),
-      count,
-      "",
-      toList([]),
-      init_work_items,
-      "",
-      "",
-      false
-    ),
-    my_effect
-  ];
-}
 function main() {
-  let app = application(init3, update, view);
+  let app = application(init4, update, view);
   let $ = start3(app, "#app", void 0);
   if (!$.isOk()) {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      441,
+      406,
       "main",
       "Assignment pattern did not match",
       { value: $ }
