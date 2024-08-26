@@ -30,6 +30,8 @@ pub opaque type Msg {
   UserUpdatedInputOfNewWorkItemId(id: String)
   UserUpdatedInputOfNewWorkItemLabel(label: String)
   UserAttemptedToAddNewItem(id: String, label: String)
+  UserDeletedWorkItem(work_item: model.WorkItem)
+  UserPressedKey(key: String, route: router.Route)
 }
 
 fn on_url_change(uri: Uri) -> Msg {
@@ -105,6 +107,13 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 
       Model(..model, work_items: list.append(model.work_items, [new_work_item]))
     }
+    UserDeletedWorkItem(work_item) ->
+      Model(
+        ..model,
+        work_items: model.work_items
+          |> list.filter(fn(wi) { wi.id != work_item.id }),
+      )
+    UserPressedKey(key, route) -> model
   }
 
   let persist_model = fn(_) { write_model_to_local_storage(model) }
@@ -114,14 +123,34 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserDecrementedCount -> effect.from(persist_model)
     UserResetCount -> effect.from(persist_model)
     OnRouteChange(_route) -> effect.none()
-    UserOpenedNewItemModal -> effect.none()
-    UserClosedNewItemModal -> effect.none()
+    UserOpenedNewItemModal -> effect.from(fn(_) { focus_input("id-work-item") })
+    UserClosedNewItemModal ->
+      effect.from(fn(_) {
+        io.debug(model.current_route)
+        Nil
+      })
     UserUpdatedInputOfNewWorkItemId(id) -> effect.none()
     UserUpdatedInputOfNewWorkItemLabel(label) -> effect.none()
     UserAttemptedToAddNewItem(id, label) ->
       effect.from(fn(dispatch) {
         write_work_items_to_local_storage(model.work_items)
         dispatch(UserClosedNewItemModal)
+      })
+    UserDeletedWorkItem(work_item) ->
+      effect.from(fn(_) { write_work_items_to_local_storage(model.work_items) })
+    UserPressedKey(key, route) ->
+      effect.from(fn(dispatch) {
+        io.debug("user pressed " <> key)
+
+        case route {
+          router.WorkItems ->
+            case key {
+              "N" | "n" -> dispatch(UserOpenedNewItemModal)
+
+              _ -> Nil
+            }
+          _ -> Nil
+        }
       })
   }
 
@@ -163,7 +192,7 @@ fn start_button() {
   html.button(
     [
       attribute.class(
-        "rounded-full h-4/5 aspect-square bg-teal-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
+        "rounded-full h-4/5 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
       ),
     ],
     [
@@ -181,14 +210,6 @@ fn start_button() {
 
 fn view_tracker(model: Model) {
   html.div([], [
-    html.div([attribute.class("flex gap-4")], [
-      html.button([event.on_click(UserIncrementedCount)], [element.text("+")]),
-      element.text(int.to_string(model.count)),
-      html.button([event.on_click(UserDecrementedCount)], [element.text("-")]),
-    ]),
-    html.div([attribute.class("w-full")], [
-      html.button([event.on_click(UserResetCount)], [element.text("Reset")]),
-    ]),
     html.div(
       [
         attribute.class(
@@ -196,15 +217,18 @@ fn view_tracker(model: Model) {
         ),
       ],
       [
-        html.div([attribute.class("mx-auto flex-col")], [
-          html.form([attribute.class("flex flex-col")], [
+        html.div([attribute.class("mx-auto flex-col w-full px-8")], [
+          html.form([attribute.class("flex flex-col gap-4 w-full")], [
             html.div([attribute.class("flex gap-2")], [
-              html.label([attribute.for("work-item")], [html.text("Work item")]),
+              html.label(
+                [attribute.for("work-item"), attribute.class("min-w-32")],
+                [html.text("Work item")],
+              ),
               html.select(
                 [
                   attribute.name("selected-work-item"),
                   attribute.id("work-item"),
-                  attribute.class("text-bg"),
+                  attribute.class("text-bg pl-2 grow rounded-md"),
                 ],
                 model.work_items
                   |> list.map(fn(work_item) {
@@ -214,6 +238,17 @@ fn view_tracker(model: Model) {
                     )
                   }),
               ),
+            ]),
+            html.div([attribute.class("flex gap-2")], [
+              html.label(
+                [attribute.for("work-item"), attribute.class("min-w-32")],
+                [html.text("Description")],
+              ),
+              html.input([
+                attribute.name("task-description"),
+                attribute.id("task-description"),
+                attribute.class("text-bg pl-2 grow rounded-md"),
+              ]),
             ]),
           ]),
         ]),
@@ -226,26 +261,40 @@ fn view_tracker(model: Model) {
 fn work_items_table(model: Model) {
   let headers =
     ["ID", "Label", "Action"]
-    |> list.map(fn(label) { html.th([], [html.text(label)]) })
+    |> list.map(fn(label) {
+      html.th([attribute.class("w-1/3")], [html.text(label)])
+    })
 
   let rows =
     model.work_items
     |> list.index_map(fn(wi, ix) {
       let tr_cls = case ix % 2 == 0 {
         True -> ""
-        False -> "bg-surface-1"
+        False -> "bg-surface-0"
       }
 
       html.tr([attribute.class(tr_cls)], [
         html.td([attribute.class("text-center")], [html.text(wi.id)]),
         html.td([attribute.class("text-center")], [html.text(wi.label)]),
-        html.td([attribute.class("text-center")], [html.text("")]),
+        html.td([attribute.class("text-center")], [
+          html.div([attribute.class("")], [
+            html.button(
+              [
+                attribute.class(
+                  "px-4 py-1 my-3 hover:bg-red-700 bg-red-500 text-white duration-300 rounded-full",
+                ),
+                event.on_click(UserDeletedWorkItem(wi)),
+              ],
+              [html.text("Delete")],
+            ),
+          ]),
+        ]),
       ])
     })
 
   html.table([attribute.class("w-full table-auto rounded-md")], [
-    html.thead([attribute.class("rounded-md")], [
-      html.tr([attribute.class("bg-surface-1 text-white rounded-md")], headers),
+    html.thead([attribute.class("")], [
+      html.tr([attribute.class("bg-surface-2 text-white")], headers),
     ]),
     html.tbody([], rows),
   ])
@@ -286,7 +335,8 @@ fn work_item_modal(model: Model) {
               ]),
               html.input([
                 attribute.id("id-work-item"),
-                attribute.class("text-bg rounded-md grow px-4 py-1"),
+                attribute.type_("text"),
+                attribute.class("text-bg rounded-md grow py-1"),
                 attribute.value(model.new_work_item_id),
                 event.on_input(UserUpdatedInputOfNewWorkItemId),
               ]),
@@ -297,32 +347,31 @@ fn work_item_modal(model: Model) {
               ]),
               html.input([
                 attribute.id("label-work-item"),
+                attribute.type_("text"),
                 attribute.class("text-bg rounded-md grow px-4 py-1"),
                 attribute.value(model.new_work_item_label),
                 event.on_input(UserUpdatedInputOfNewWorkItemLabel),
               ]),
             ]),
+            html.div([attribute.class("flex w-full gap-4")], [
+              html.input([
+                attribute.class(
+                  "h-8 rounded-lg bg-teal-300 text-bg w-1/2 cursor-pointer",
+                ),
+                attribute.type_("submit"),
+                attribute.value("Save"),
+              ]),
+              html.button(
+                [
+                  attribute.class("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
+                  event.on_click(UserClosedNewItemModal),
+                  attribute.type_("button"),
+                ],
+                [html.text("Cancel")],
+              ),
+            ]),
           ],
         ),
-        html.div([attribute.class("flex w-full gap-4")], [
-          html.button(
-            [
-              attribute.class("h-8 rounded-lg bg-teal-300 text-bg w-1/2"),
-              event.on_click(UserAttemptedToAddNewItem(
-                id: model.new_work_item_id,
-                label: model.new_work_item_label,
-              )),
-            ],
-            [html.text("Save")],
-          ),
-          html.button(
-            [
-              attribute.class("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
-              event.on_click(UserClosedNewItemModal),
-            ],
-            [html.text("Cancel")],
-          ),
-        ]),
       ],
     )
 
@@ -389,21 +438,23 @@ fn view(model: Model) -> element.Element(Msg) {
     router.Analytics -> view_analytics(model)
   }
 
-  html.div(
-    [
-      attribute.class(
-        "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4",
-      ),
-    ],
-    [
-      header(),
-      horizontal_bar(),
-      nav_bar(nav_items),
-      horizontal_bar(),
-      page_content,
-      work_item_modal(model),
-    ],
-  )
+  html.body([event.on_keypress(UserPressedKey(_, model.current_route))], [
+    html.div(
+      [
+        attribute.class(
+          "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4",
+        ),
+      ],
+      [
+        header(),
+        horizontal_bar(),
+        nav_bar(nav_items),
+        horizontal_bar(),
+        page_content,
+        work_item_modal(model),
+      ],
+    ),
+  ])
 }
 
 pub fn main() {
@@ -444,5 +495,10 @@ fn read_model_info_from_local_storage() -> String {
 
 @external(javascript, "./ffi.mjs", "writeWorkItemsToLocalStorage")
 fn write_work_items_to_local_storage(lst: List(model.WorkItem)) -> Nil {
+  Nil
+}
+
+@external(javascript, "./ffi.mjs", "focusInput")
+fn focus_input(id: String) -> Nil {
   Nil
 }

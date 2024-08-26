@@ -296,6 +296,33 @@ function do_reverse(loop$remaining, loop$accumulator) {
 function reverse(xs) {
   return do_reverse(xs, toList([]));
 }
+function do_filter(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list2 = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list2.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let x = list2.head;
+      let xs = list2.tail;
+      let new_acc = (() => {
+        let $ = fun(x);
+        if ($) {
+          return prepend(x, acc);
+        } else {
+          return acc;
+        }
+      })();
+      loop$list = xs;
+      loop$fun = fun;
+      loop$acc = new_acc;
+    }
+  }
+}
+function filter(list2, predicate) {
+  return do_filter(list2, predicate, toList([]));
+}
 function do_map(loop$list, loop$fun, loop$acc) {
   while (true) {
     let list2 = loop$list;
@@ -1515,15 +1542,15 @@ function inspectString(str) {
   return new_str;
 }
 function inspectDict(map5) {
-  let body = "dict.from_list([";
+  let body2 = "dict.from_list([";
   let first3 = true;
   map5.forEach((value3, key) => {
     if (!first3)
-      body = body + ", ";
-    body = body + "#(" + inspect(key) + ", " + inspect(value3) + ")";
+      body2 = body2 + ", ";
+    body2 = body2 + "#(" + inspect(key) + ", " + inspect(value3) + ")";
     first3 = false;
   });
-  return body + "])";
+  return body2 + "])";
 }
 function inspectObject(v) {
   const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
@@ -1531,9 +1558,9 @@ function inspectObject(v) {
   for (const k of Object.keys(v)) {
     props.push(`${inspect(k)}: ${inspect(v[k])}`);
   }
-  const body = props.length ? " " + props.join(", ") + " " : "";
+  const body2 = props.length ? " " + props.join(", ") + " " : "";
   const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
+  return `//js(${head}{${body2}})`;
 }
 function inspectCustomType(record) {
   const props = Object.keys(record).map((label2) => {
@@ -1837,6 +1864,9 @@ function class$(name2) {
 }
 function id(name2) {
   return attribute("id", name2);
+}
+function type_(name2) {
+  return attribute("type", name2);
 }
 function value(val) {
   return attribute("value", val);
@@ -2353,6 +2383,9 @@ function start3(app, selector, flags) {
 function text2(content) {
   return text(content);
 }
+function body(attrs, children) {
+  return element("body", attrs, children);
+}
 function h1(attrs, children) {
   return element("h1", attrs, children);
 }
@@ -2422,6 +2455,16 @@ function on_click(msg) {
   return on2("click", (_) => {
     return new Ok(msg);
   });
+}
+function on_keypress(msg) {
+  return on2(
+    "keypress",
+    (event2) => {
+      let _pipe = event2;
+      let _pipe$1 = field("key", string)(_pipe);
+      return map2(_pipe$1, msg);
+    }
+  );
 }
 function value2(event2) {
   let _pipe = event2;
@@ -2645,6 +2688,9 @@ function writeWorkItemsToLocalStorage(lst) {
   let js_lst = linkedListToArray(lst);
   window.localStorage.setItem("work_items", JSON.stringify(js_lst));
 }
+function focusInput(id2) {
+  window.setTimeout(() => document.getElementById(id2).focus(), 0);
+}
 
 // build/dev/javascript/timetracker_gleam/timetracker_gleam.mjs
 var UserIncrementedCount = class extends CustomType {
@@ -2680,6 +2726,19 @@ var UserAttemptedToAddNewItem = class extends CustomType {
     super();
     this.id = id2;
     this.label = label2;
+  }
+};
+var UserDeletedWorkItem = class extends CustomType {
+  constructor(work_item2) {
+    super();
+    this.work_item = work_item2;
+  }
+};
+var UserPressedKey = class extends CustomType {
+  constructor(key, route) {
+    super();
+    this.key = key;
+    this.route = route;
   }
 };
 var NavItem = class extends CustomType {
@@ -2773,29 +2832,6 @@ function view_tracker(model) {
     toList([]),
     toList([
       div(
-        toList([class$("flex gap-4")]),
-        toList([
-          button(
-            toList([on_click(new UserIncrementedCount())]),
-            toList([text("+")])
-          ),
-          text(to_string2(model.count)),
-          button(
-            toList([on_click(new UserDecrementedCount())]),
-            toList([text("-")])
-          )
-        ])
-      ),
-      div(
-        toList([class$("w-full")]),
-        toList([
-          button(
-            toList([on_click(new UserResetCount())]),
-            toList([text("Reset")])
-          )
-        ])
-      ),
-      div(
         toList([
           class$(
             "w-full h-32 rounded-lg bg-surface-0 flex px-8 py-2 items-center"
@@ -2803,23 +2839,26 @@ function view_tracker(model) {
         ]),
         toList([
           div(
-            toList([class$("mx-auto flex-col")]),
+            toList([class$("mx-auto flex-col w-full px-8")]),
             toList([
               form(
-                toList([class$("flex flex-col")]),
+                toList([class$("flex flex-col gap-4 w-full")]),
                 toList([
                   div(
                     toList([class$("flex gap-2")]),
                     toList([
                       label(
-                        toList([for$("work-item")]),
+                        toList([
+                          for$("work-item"),
+                          class$("min-w-32")
+                        ]),
                         toList([text2("Work item")])
                       ),
                       select(
                         toList([
                           name("selected-work-item"),
                           id("work-item"),
-                          class$("text-bg")
+                          class$("text-bg pl-2 grow rounded-md")
                         ]),
                         (() => {
                           let _pipe = model.work_items;
@@ -2833,6 +2872,25 @@ function view_tracker(model) {
                             }
                           );
                         })()
+                      )
+                    ])
+                  ),
+                  div(
+                    toList([class$("flex gap-2")]),
+                    toList([
+                      label(
+                        toList([
+                          for$("work-item"),
+                          class$("min-w-32")
+                        ]),
+                        toList([text2("Description")])
+                      ),
+                      input(
+                        toList([
+                          name("task-description"),
+                          id("task-description"),
+                          class$("text-bg pl-2 grow rounded-md")
+                        ])
                       )
                     ])
                   )
@@ -2852,7 +2910,10 @@ function work_items_table(model) {
     return map(
       _pipe,
       (label2) => {
-        return th(toList([]), toList([text2(label2)]));
+        return th(
+          toList([class$("w-1/3")]),
+          toList([text2(label2)])
+        );
       }
     );
   })();
@@ -2866,7 +2927,7 @@ function work_items_table(model) {
           if ($) {
             return "";
           } else {
-            return "bg-surface-1";
+            return "bg-surface-0";
           }
         })();
         return tr(
@@ -2882,7 +2943,22 @@ function work_items_table(model) {
             ),
             td(
               toList([class$("text-center")]),
-              toList([text2("")])
+              toList([
+                div(
+                  toList([class$("")]),
+                  toList([
+                    button(
+                      toList([
+                        class$(
+                          "px-4 py-1 my-3 hover:bg-red-700 bg-red-500 text-white duration-300 rounded-full"
+                        ),
+                        on_click(new UserDeletedWorkItem(wi))
+                      ]),
+                      toList([text2("Delete")])
+                    )
+                  ])
+                )
+              ])
             )
           ])
         );
@@ -2893,10 +2969,10 @@ function work_items_table(model) {
     toList([class$("w-full table-auto rounded-md")]),
     toList([
       thead(
-        toList([class$("rounded-md")]),
+        toList([class$("")]),
         toList([
           tr(
-            toList([class$("bg-surface-1 text-white rounded-md")]),
+            toList([class$("bg-surface-2 text-white")]),
             headers
           )
         ])
@@ -2920,7 +2996,7 @@ function work_item_modal(model) {
     toList([
       id("modal-add-work-item"),
       class$(
-        "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 opacity-100 rounded-lg flex flex-col gap-4 p-4 z-999 duration-2000 transition" + modal_size
+        "max-w-5xl w-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-1 opacity-100 rounded-lg flex flex-col gap-4 p-4 z-999 duration-2000 transition " + modal_size
       )
     ]),
     toList([
@@ -2949,7 +3025,8 @@ function work_item_modal(model) {
               input(
                 toList([
                   id("id-work-item"),
-                  class$("text-bg rounded-md grow px-4 py-1"),
+                  type_("text"),
+                  class$("text-bg rounded-md grow py-1"),
                   value(model.new_work_item_id),
                   on_input(
                     (var0) => {
@@ -2970,6 +3047,7 @@ function work_item_modal(model) {
               input(
                 toList([
                   id("label-work-item"),
+                  type_("text"),
                   class$("text-bg rounded-md grow px-4 py-1"),
                   value(model.new_work_item_label),
                   on_input(
@@ -2980,30 +3058,28 @@ function work_item_modal(model) {
                 ])
               )
             ])
-          )
-        ])
-      ),
-      div(
-        toList([class$("flex w-full gap-4")]),
-        toList([
-          button(
-            toList([
-              class$("h-8 rounded-lg bg-teal-300 text-bg w-1/2"),
-              on_click(
-                new UserAttemptedToAddNewItem(
-                  model.new_work_item_id,
-                  model.new_work_item_label
-                )
-              )
-            ]),
-            toList([text2("Save")])
           ),
-          button(
+          div(
+            toList([class$("flex w-full gap-4")]),
             toList([
-              class$("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
-              on_click(new UserClosedNewItemModal())
-            ]),
-            toList([text2("Cancel")])
+              input(
+                toList([
+                  class$(
+                    "h-8 rounded-lg bg-teal-300 text-bg w-1/2 cursor-pointer"
+                  ),
+                  type_("submit"),
+                  value("Save")
+                ])
+              ),
+              button(
+                toList([
+                  class$("h-8 rounded-lg bg-red-400 text-bg w-1/2"),
+                  on_click(new UserClosedNewItemModal()),
+                  type_("button")
+                ]),
+                toList([text2("Cancel")])
+              )
+            ])
           )
         ])
       )
@@ -3066,19 +3142,30 @@ function view(model) {
       return view_analytics(model);
     }
   })();
-  return div(
+  return body(
     toList([
-      class$(
-        "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4"
+      on_keypress(
+        (_capture) => {
+          return new UserPressedKey(_capture, model.current_route);
+        }
       )
     ]),
     toList([
-      header(),
-      horizontal_bar(),
-      nav_bar(nav_items),
-      horizontal_bar(),
-      page_content,
-      work_item_modal(model)
+      div(
+        toList([
+          class$(
+            "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4"
+          )
+        ]),
+        toList([
+          header(),
+          horizontal_bar(),
+          nav_bar(nav_items),
+          horizontal_bar(),
+          page_content,
+          work_item_modal(model)
+        ])
+      )
     ])
   );
 }
@@ -3095,7 +3182,7 @@ function init4(_) {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      42,
+      44,
       "init",
       "Assignment pattern did not match",
       { value: $ }
@@ -3148,13 +3235,27 @@ function update(model, msg) {
     } else if (msg instanceof UserUpdatedInputOfNewWorkItemLabel) {
       let label2 = msg.label;
       return model.withFields({ new_work_item_label: label2 });
-    } else {
+    } else if (msg instanceof UserAttemptedToAddNewItem) {
       let id2 = msg.id;
       let label2 = msg.label;
       let new_work_item = new WorkItem(id2, label2);
       return model.withFields({
         work_items: append(model.work_items, toList([new_work_item]))
       });
+    } else if (msg instanceof UserDeletedWorkItem) {
+      let work_item2 = msg.work_item;
+      return model.withFields({
+        work_items: (() => {
+          let _pipe = model.work_items;
+          return filter(_pipe, (wi) => {
+            return wi.id !== work_item2.id;
+          });
+        })()
+      });
+    } else {
+      let key = msg.key;
+      let route = msg.route;
+      return model;
     }
   })();
   let persist_model = (_) => {
@@ -3170,22 +3271,55 @@ function update(model, msg) {
     } else if (msg instanceof OnRouteChange) {
       return none();
     } else if (msg instanceof UserOpenedNewItemModal) {
-      return none();
+      return from((_) => {
+        return focusInput("id-work-item");
+      });
     } else if (msg instanceof UserClosedNewItemModal) {
-      return none();
+      return from(
+        (_) => {
+          debug(model$1.current_route);
+          return void 0;
+        }
+      );
     } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
       let id2 = msg.id;
       return none();
     } else if (msg instanceof UserUpdatedInputOfNewWorkItemLabel) {
       let label2 = msg.label;
       return none();
-    } else {
+    } else if (msg instanceof UserAttemptedToAddNewItem) {
       let id2 = msg.id;
       let label2 = msg.label;
       return from(
         (dispatch) => {
           writeWorkItemsToLocalStorage(model$1.work_items);
           return dispatch(new UserClosedNewItemModal());
+        }
+      );
+    } else if (msg instanceof UserDeletedWorkItem) {
+      let work_item2 = msg.work_item;
+      return from(
+        (_) => {
+          return writeWorkItemsToLocalStorage(model$1.work_items);
+        }
+      );
+    } else {
+      let key = msg.key;
+      let route = msg.route;
+      return from(
+        (dispatch) => {
+          debug("user pressed " + key);
+          if (route instanceof WorkItems) {
+            if (key === "N") {
+              return dispatch(new UserOpenedNewItemModal());
+            } else if (key === "n") {
+              return dispatch(new UserOpenedNewItemModal());
+            } else {
+              return void 0;
+            }
+          } else {
+            return void 0;
+          }
         }
       );
     }
@@ -3199,7 +3333,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      411,
+      462,
       "main",
       "Assignment pattern did not match",
       { value: $ }

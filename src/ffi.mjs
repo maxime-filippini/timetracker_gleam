@@ -57,3 +57,7 @@ export function writeWorkItemsToLocalStorage(lst) {
   let js_lst = linkedListToArray(lst);
   window.localStorage.setItem("work_items", JSON.stringify(js_lst));
 }
+
+export function focusInput(id) {
+  window.setTimeout(() => document.getElementById(id).focus(), 0);
+}

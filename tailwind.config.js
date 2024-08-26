@@ -10,6 +10,7 @@ module.exports = {
         "overlay-1": "#8087a2",
         "surface-0": "#363a4f",
         "surface-1": "#313244",
+        "surface-2": "#585b70",
         "catp-green": "#a6e3a1",
         "gleam-pink": "#ffaff3",
       },
