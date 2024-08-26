@@ -206,8 +206,13 @@ fn view_tracker(model: Model) {
                   attribute.id("work-item"),
                   attribute.class("text-bg"),
                 ],
-                ["A", "B", "C"]
-                  |> list.map(fn(x) { html.option([attribute.value(x)], x) }),
+                model.work_items
+                  |> list.map(fn(work_item) {
+                    html.option(
+                      [attribute.value(work_item.id)],
+                      work_item.label,
+                    )
+                  }),
               ),
             ]),
           ]),

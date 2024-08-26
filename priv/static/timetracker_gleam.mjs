@@ -2822,13 +2822,13 @@ function view_tracker(model) {
                           class$("text-bg")
                         ]),
                         (() => {
-                          let _pipe = toList(["A", "B", "C"]);
+                          let _pipe = model.work_items;
                           return map(
                             _pipe,
-                            (x) => {
+                            (work_item2) => {
                               return option(
-                                toList([value(x)]),
-                                x
+                                toList([value(work_item2.id)]),
+                                work_item2.label
                               );
                             }
                           );
@@ -3199,7 +3199,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      406,
+      411,
       "main",
       "Assignment pattern did not match",
       { value: $ }
