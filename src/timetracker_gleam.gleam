@@ -163,7 +163,7 @@ fn start_button() {
   html.button(
     [
       attribute.class(
-        "rounded-full h-4/5 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
+        "rounded-full h-4/5 aspect-square bg-teal-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
       ),
     ],
     [
