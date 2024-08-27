@@ -401,7 +401,7 @@ fn work_item_modal(model: Model) {
               html.input([
                 attribute.id("id-work-item"),
                 attribute.type_("text"),
-                attribute.class("text-bg rounded-md grow py-1"),
+                attribute.class("text-bg rounded-md grow py-1 px-4"),
                 attribute.value(model.new_work_item_id),
                 event.on_input(UserUpdatedInputOfNewWorkItemId),
               ]),
