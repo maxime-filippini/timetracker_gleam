@@ -14,5 +14,7 @@ pub type Model {
     new_work_item_id: String,
     new_work_item_label: String,
     new_work_item_modal_open: Bool,
+    current_timer: Int,
+    timer_running: Bool,
   )
 }

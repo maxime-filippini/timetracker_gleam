@@ -61,3 +61,11 @@ export function writeWorkItemsToLocalStorage(lst) {
 export function focusInput(id) {
   window.setTimeout(() => document.getElementById(id).focus(), 0);
 }
+
+export function every(id, interval, cb) {
+  window.__timer = window.setInterval(cb, interval);
+}
+
+export function stop(id) {
+  window.clearInterval(window.__timer);
+}

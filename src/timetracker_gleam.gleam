@@ -32,6 +32,9 @@ pub opaque type Msg {
   UserAttemptedToAddNewItem(id: String, label: String)
   UserDeletedWorkItem(work_item: model.WorkItem)
   UserPressedKey(key: String, route: router.Route)
+  UserStartedTimer
+  UserStoppedTimer
+  TimerUpdate
 }
 
 fn on_url_change(uri: Uri) -> Msg {
@@ -56,6 +59,8 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       new_work_item_id: "",
       new_work_item_label: "",
       new_work_item_modal_open: False,
+      current_timer: 0,
+      timer_running: False,
     ),
     my_effect,
   )
@@ -114,6 +119,9 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
           |> list.filter(fn(wi) { wi.id != work_item.id }),
       )
     UserPressedKey(key, route) -> model
+    UserStartedTimer -> Model(..model, current_timer: 0, timer_running: True)
+    UserStoppedTimer -> Model(..model, timer_running: False)
+    TimerUpdate -> Model(..model, current_timer: model.current_timer + 1)
   }
 
   let persist_model = fn(_) { write_model_to_local_storage(model) }
@@ -152,6 +160,14 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
           _ -> Nil
         }
       })
+    UserStartedTimer -> every(1000, TimerUpdate)
+    UserStoppedTimer -> effect.from(fn(_) { stop_interval("__timer") })
+    TimerUpdate ->
+      effect.from(fn(_) {
+        io.debug("Dispatched TimerUpdate")
+        io.debug("Current interval: " <> int.to_string(model.current_timer))
+        Nil
+      })
   }
 
   #(model, effect)
@@ -188,24 +204,46 @@ fn nav_bar(items: List(NavItem)) -> element.Element(Msg) {
   ])
 }
 
-fn start_button() {
-  html.button(
-    [
-      attribute.class(
-        "rounded-full sm:h-4/5 h-32 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
-      ),
-    ],
-    [
-      html.div(
-        [
-          attribute.class(
-            "ml-2 border-t-[15px] border-t-transparent border-b-transparent w-0 h-0 border-b-[15px] border-l-[25px] border-white",
-          ),
-        ],
-        [],
-      ),
-    ],
-  )
+fn timer_button(model: model.Model) {
+  let start_button =
+    html.button(
+      [
+        attribute.class(
+          "rounded-full sm:h-4/5 h-32 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
+        ),
+        event.on_click(UserStartedTimer),
+      ],
+      [
+        html.div(
+          [
+            attribute.class(
+              "ml-2 border-t-[15px] border-t-transparent border-b-transparent w-0 h-0 border-b-[15px] border-l-[25px] border-white",
+            ),
+          ],
+          [],
+        ),
+      ],
+    )
+
+  let stop_button =
+    html.button(
+      [
+        attribute.class(
+          "rounded-full sm:h-4/5 h-32 aspect-square bg-red-500 hover:bg-red-600 duration-200 border-[3px] border-red-900 flex items-center justify-center",
+        ),
+        event.on_click(UserStoppedTimer),
+      ],
+      [
+        html.div([attribute.class("text-3xl text-white text-semibold")], [
+          html.text(int.to_string(model.current_timer)),
+        ]),
+      ],
+    )
+
+  case model.timer_running {
+    True -> stop_button
+    False -> start_button
+  }
 }
 
 fn view_tracker(model: Model) {
@@ -272,7 +310,14 @@ fn view_tracker(model: Model) {
             ),
           ]),
         ]),
-        html.div([attribute.class("")], [start_button()]),
+        html.div(
+          [
+            attribute.class(
+              "sm:grow-0 sm:h-full grow flex items-center justify-center",
+            ),
+          ],
+          [timer_button(model)],
+        ),
       ],
     ),
   ])
@@ -477,6 +522,13 @@ fn view(model: Model) -> element.Element(Msg) {
   ])
 }
 
+fn every(interval: Int, tick: Msg) -> effect.Effect(Msg) {
+  effect.from(fn(dispatch) {
+    io.debug("Current interval: " <> int.to_string(interval))
+    do_every("__timer", interval, fn() { dispatch(tick) })
+  })
+}
+
 pub fn main() {
   let app = lustre.application(init, update, view)
   let assert Ok(_) = lustre.start(app, "#app", Nil)
@@ -520,5 +572,15 @@ fn write_work_items_to_local_storage(lst: List(model.WorkItem)) -> Nil {
 
 @external(javascript, "./ffi.mjs", "focusInput")
 fn focus_input(id: String) -> Nil {
+  Nil
+}
+
+@external(javascript, "./ffi.mjs", "every")
+fn do_every(id: String, interval: Int, cb: fn() -> Nil) -> Nil {
+  Nil
+}
+
+@external(javascript, "./ffi.mjs", "stop")
+fn stop_interval(id: String) -> Nil {
   Nil
 }
