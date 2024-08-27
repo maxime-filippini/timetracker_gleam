@@ -192,7 +192,7 @@ fn start_button() {
   html.button(
     [
       attribute.class(
-        "rounded-full h-4/5 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
+        "rounded-full sm:h-4/5 h-32 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
       ),
     ],
     [
@@ -209,50 +209,70 @@ fn start_button() {
 }
 
 fn view_tracker(model: Model) {
-  html.div([], [
+  html.div([attribute.class("grow")], [
     html.div(
       [
         attribute.class(
-          "w-full h-32 rounded-lg bg-surface-0 flex px-8 py-2 items-center",
+          "w-full sm:h-32 h-96 rounded-lg bg-surface-0 flex sm:flex-nowrap  flex-wrap sm:px-8 py-2 items-center justify-center",
         ),
       ],
       [
-        html.div([attribute.class("mx-auto flex-col w-full px-8")], [
-          html.form([attribute.class("flex flex-col gap-4 w-full")], [
-            html.div([attribute.class("flex gap-2")], [
-              html.label(
-                [attribute.for("work-item"), attribute.class("min-w-32")],
-                [html.text("Work item")],
-              ),
-              html.select(
-                [
-                  attribute.name("selected-work-item"),
-                  attribute.id("work-item"),
-                  attribute.class("text-bg pl-2 grow rounded-md"),
-                ],
-                model.work_items
-                  |> list.map(fn(work_item) {
-                    html.option(
-                      [attribute.value(work_item.id)],
-                      work_item.label,
-                    )
-                  }),
-              ),
-            ]),
-            html.div([attribute.class("flex gap-2")], [
-              html.label(
-                [attribute.for("work-item"), attribute.class("min-w-32")],
-                [html.text("Description")],
-              ),
-              html.input([
-                attribute.name("task-description"),
-                attribute.id("task-description"),
-                attribute.class("text-bg pl-2 grow rounded-md"),
-              ]),
-            ]),
+        html.div([attribute.class("flex-col px-8")], [
+          html.form([attribute.class("flex flex-col gap-4 sm:w-full w-64")], [
+            html.div(
+              [
+                attribute.class(
+                  "flex gap-2 sm:flex-nowrap flex-wrap justify-center",
+                ),
+              ],
+              [
+                html.label(
+                  [
+                    attribute.for("work-item"),
+                    attribute.class("sm:min-w-32 min-w-full text-center"),
+                  ],
+                  [html.text("Work item")],
+                ),
+                html.select(
+                  [
+                    attribute.name("selected-work-item"),
+                    attribute.id("work-item"),
+                    attribute.class("text-bg pl-2 rounded-md"),
+                  ],
+                  model.work_items
+                    |> list.map(fn(work_item) {
+                      html.option(
+                        [attribute.value(work_item.id)],
+                        work_item.label,
+                      )
+                    }),
+                ),
+              ],
+            ),
+            html.div(
+              [
+                attribute.class(
+                  "flex gap-2 sm:flex-nowrap flex-wrap justify-center",
+                ),
+              ],
+              [
+                html.label(
+                  [
+                    attribute.for("work-item"),
+                    attribute.class("sm:min-w-32 min-w-full text-center"),
+                  ],
+                  [html.text("Description")],
+                ),
+                html.input([
+                  attribute.name("task-description"),
+                  attribute.id("task-description"),
+                  attribute.class("text-bg pl-2 rounded-md"),
+                ]),
+              ],
+            ),
           ]),
         ]),
-        start_button(),
+        html.div([attribute.class("")], [start_button()]),
       ],
     ),
   ])

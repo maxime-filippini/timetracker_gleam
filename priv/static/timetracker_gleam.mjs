@@ -2812,7 +2812,7 @@ function start_button() {
   return button(
     toList([
       class$(
-        "rounded-full h-4/5 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center"
+        "rounded-full sm:h-4/5 h-32 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center"
       )
     ]),
     toList([
@@ -2829,28 +2829,34 @@ function start_button() {
 }
 function view_tracker(model) {
   return div(
-    toList([]),
+    toList([class$("grow")]),
     toList([
       div(
         toList([
           class$(
-            "w-full h-32 rounded-lg bg-surface-0 flex px-8 py-2 items-center"
+            "w-full sm:h-32 h-96 rounded-lg bg-surface-0 flex sm:flex-nowrap  flex-wrap sm:px-8 py-2 items-center justify-center"
           )
         ]),
         toList([
           div(
-            toList([class$("mx-auto flex-col w-full px-8")]),
+            toList([class$("flex-col px-8")]),
             toList([
               form(
-                toList([class$("flex flex-col gap-4 w-full")]),
+                toList([class$("flex flex-col gap-4 sm:w-full w-64")]),
                 toList([
                   div(
-                    toList([class$("flex gap-2")]),
+                    toList([
+                      class$(
+                        "flex gap-2 sm:flex-nowrap flex-wrap justify-center"
+                      )
+                    ]),
                     toList([
                       label(
                         toList([
                           for$("work-item"),
-                          class$("min-w-32")
+                          class$(
+                            "sm:min-w-32 min-w-full text-center"
+                          )
                         ]),
                         toList([text2("Work item")])
                       ),
@@ -2858,7 +2864,7 @@ function view_tracker(model) {
                         toList([
                           name("selected-work-item"),
                           id("work-item"),
-                          class$("text-bg pl-2 grow rounded-md")
+                          class$("text-bg pl-2 rounded-md")
                         ]),
                         (() => {
                           let _pipe = model.work_items;
@@ -2876,12 +2882,18 @@ function view_tracker(model) {
                     ])
                   ),
                   div(
-                    toList([class$("flex gap-2")]),
+                    toList([
+                      class$(
+                        "flex gap-2 sm:flex-nowrap flex-wrap justify-center"
+                      )
+                    ]),
                     toList([
                       label(
                         toList([
                           for$("work-item"),
-                          class$("min-w-32")
+                          class$(
+                            "sm:min-w-32 min-w-full text-center"
+                          )
                         ]),
                         toList([text2("Description")])
                       ),
@@ -2889,7 +2901,7 @@ function view_tracker(model) {
                         toList([
                           name("task-description"),
                           id("task-description"),
-                          class$("text-bg pl-2 grow rounded-md")
+                          class$("text-bg pl-2 rounded-md")
                         ])
                       )
                     ])
@@ -2898,7 +2910,7 @@ function view_tracker(model) {
               )
             ])
           ),
-          start_button()
+          div(toList([class$("")]), toList([start_button()]))
         ])
       )
     ])
@@ -3333,7 +3345,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      462,
+      482,
       "main",
       "Assignment pattern did not match",
       { value: $ }
