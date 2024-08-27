@@ -2621,7 +2621,7 @@ var WorkItem = class extends CustomType {
   }
 };
 var Model = class extends CustomType {
-  constructor(current_route, count, current_task, task_options, work_items, new_work_item_id, new_work_item_label, new_work_item_modal_open) {
+  constructor(current_route, count, current_task, task_options, work_items, new_work_item_id, new_work_item_label, new_work_item_modal_open, current_timer, timer_running) {
     super();
     this.current_route = current_route;
     this.count = count;
@@ -2631,6 +2631,8 @@ var Model = class extends CustomType {
     this.new_work_item_id = new_work_item_id;
     this.new_work_item_label = new_work_item_label;
     this.new_work_item_modal_open = new_work_item_modal_open;
+    this.current_timer = current_timer;
+    this.timer_running = timer_running;
   }
 };
 
@@ -2691,6 +2693,12 @@ function writeWorkItemsToLocalStorage(lst) {
 function focusInput(id2) {
   window.setTimeout(() => document.getElementById(id2).focus(), 0);
 }
+function every(id2, interval, cb) {
+  window.__timer = window.setInterval(cb, interval);
+}
+function stop(id2) {
+  window.clearInterval(window.__timer);
+}
 
 // build/dev/javascript/timetracker_gleam/timetracker_gleam.mjs
 var UserIncrementedCount = class extends CustomType {
@@ -2740,6 +2748,12 @@ var UserPressedKey = class extends CustomType {
     this.key = key;
     this.route = route;
   }
+};
+var UserStartedTimer = class extends CustomType {
+};
+var UserStoppedTimer = class extends CustomType {
+};
+var TimerUpdate = class extends CustomType {
 };
 var NavItem = class extends CustomType {
   constructor(url, title, route) {
@@ -2808,12 +2822,13 @@ function nav_bar(items) {
     ])
   );
 }
-function start_button() {
-  return button(
+function timer_button(model) {
+  let start_button = button(
     toList([
       class$(
-        "rounded-full h-4/5 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center"
-      )
+        "rounded-full sm:h-4/5 h-32 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center"
+      ),
+      on_click(new UserStartedTimer())
     ]),
     toList([
       div(
@@ -2826,31 +2841,57 @@ function start_button() {
       )
     ])
   );
+  let stop_button = button(
+    toList([
+      class$(
+        "rounded-full sm:h-4/5 h-32 aspect-square bg-red-500 hover:bg-red-600 duration-200 border-[3px] border-red-900 flex items-center justify-center"
+      ),
+      on_click(new UserStoppedTimer())
+    ]),
+    toList([
+      div(
+        toList([class$("text-3xl text-white text-semibold")]),
+        toList([text2(to_string2(model.current_timer))])
+      )
+    ])
+  );
+  let $ = model.timer_running;
+  if ($) {
+    return stop_button;
+  } else {
+    return start_button;
+  }
 }
 function view_tracker(model) {
   return div(
-    toList([]),
+    toList([class$("grow")]),
     toList([
       div(
         toList([
           class$(
-            "w-full h-32 rounded-lg bg-surface-0 flex px-8 py-2 items-center"
+            "w-full sm:h-32 h-96 rounded-lg bg-surface-0 flex sm:flex-nowrap  flex-wrap sm:px-8 py-2 items-center justify-center"
           )
         ]),
         toList([
           div(
-            toList([class$("mx-auto flex-col w-full px-8")]),
+            toList([class$("flex-col px-8")]),
             toList([
               form(
-                toList([class$("flex flex-col gap-4 w-full")]),
+                toList([class$("flex flex-col gap-4 sm:w-full w-64")]),
                 toList([
                   div(
-                    toList([class$("flex gap-2")]),
+                    toList([
+                      class$(
+                        "flex gap-2 sm:flex-nowrap flex-wrap justify-center"
+                      )
+                    ]),
                     toList([
                       label(
                         toList([
                           for$("work-item"),
-                          class$("min-w-32")
+                          class$(
+                            "sm:min-w-32 min-w-full text-center"
+                          )
                         ]),
                         toList([text2("Work item")])
                       ),
@@ -2858,7 +2899,7 @@ function view_tracker(model) {
                         toList([
                           name("selected-work-item"),
                           id("work-item"),
-                          class$("text-bg pl-2 grow rounded-md")
+                          class$("text-bg pl-2 rounded-md")
                         ]),
                         (() => {
                           let _pipe = model.work_items;
@@ -2876,12 +2917,18 @@ function view_tracker(model) {
                     ])
                   ),
                   div(
-                    toList([class$("flex gap-2")]),
+                    toList([
+                      class$(
+                        "flex gap-2 sm:flex-nowrap flex-wrap justify-center"
+                      )
+                    ]),
                     toList([
                       label(
                         toList([
                           for$("work-item"),
-                          class$("min-w-32")
+                          class$(
+                            "sm:min-w-32 min-w-full text-center"
+                          )
                         ]),
                         toList([text2("Description")])
                       ),
@@ -2889,7 +2936,7 @@ function view_tracker(model) {
                         toList([
                           name("task-description"),
                           id("task-description"),
-                          class$("text-bg pl-2 grow rounded-md")
+                          class$("text-bg pl-2 rounded-md")
                         ])
                       )
                     ])
@@ -2898,7 +2945,14 @@ function view_tracker(model) {
               )
             ])
           ),
-          start_button()
+          div(
+            toList([
+              class$(
+                "sm:grow-0 sm:h-full grow flex items-center justify-center"
+              )
+            ]),
+            toList([timer_button(model)])
+          )
         ])
       )
     ])
@@ -3182,7 +3236,7 @@ function init4(_) {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      44,
+      47,
       "init",
       "Assignment pattern did not match",
       { value: $ }
@@ -3199,10 +3253,22 @@ function init4(_) {
       local_storage_model2.work_items,
       "",
       "",
+      false,
+      0,
       false
     ),
     my_effect
   ];
+}
+function every2(interval, tick) {
+  return from(
+    (dispatch) => {
+      debug("Current interval: " + to_string2(interval));
+      return every("__timer", interval, () => {
+        return dispatch(tick);
+      });
+    }
+  );
 }
 function update(model, msg) {
   let model$1 = (() => {
@@ -3252,10 +3318,16 @@ function update(model, msg) {
           });
         })()
       });
-    } else {
+    } else if (msg instanceof UserPressedKey) {
       let key = msg.key;
       let route = msg.route;
       return model;
+    } else if (msg instanceof UserStartedTimer) {
+      return model.withFields({ current_timer: 0, timer_running: true });
+    } else if (msg instanceof UserStoppedTimer) {
+      return model.withFields({ timer_running: false });
+    } else {
+      return model.withFields({ current_timer: model.current_timer + 1 });
     }
   })();
   let persist_model = (_) => {
@@ -3303,7 +3375,7 @@ function update(model, msg) {
           return writeWorkItemsToLocalStorage(model$1.work_items);
         }
       );
-    } else {
+    } else if (msg instanceof UserPressedKey) {
       let key = msg.key;
       let route = msg.route;
       return from(
@@ -3322,6 +3394,22 @@ function update(model, msg) {
           }
         }
       );
+    } else if (msg instanceof UserStartedTimer) {
+      return every2(1e3, new TimerUpdate());
+    } else if (msg instanceof UserStoppedTimer) {
+      return from((_) => {
+        return stop("__timer");
+      });
+    } else {
+      return from(
+        (_) => {
+          debug("Dispatched TimerUpdate");
+          debug(
+            "Current interval: " + to_string2(model$1.current_timer)
+          );
+          return void 0;
+        }
+      );
     }
   })();
   return [model$1, effect];
@@ -3333,7 +3421,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      462,
+      534,
       "main",
       "Assignment pattern did not match",
       { value: $ }
