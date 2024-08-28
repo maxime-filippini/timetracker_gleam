@@ -15,6 +15,7 @@ import lustre/event
 import model.{type Model, Model}
 import modem
 import router
+import time
 
 pub type LocalStorageData {
   LocalStorageData(count: Int, work_items: List(model.WorkItem))
@@ -61,6 +62,7 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
       new_work_item_modal_open: False,
       current_timer: 0,
       timer_running: False,
+      records: [],
     ),
     my_effect,
   )
@@ -68,7 +70,6 @@ fn init(_flags) -> #(Model, effect.Effect(Msg)) {
 
 fn write_model_to_local_storage(model: Model) -> Nil {
   let s_count = int.to_string(model.count)
-  io.debug("Writing model to local storage: count=" <> s_count)
   do_write("count", s_count)
 }
 
@@ -120,7 +121,17 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       )
     UserPressedKey(key, route) -> model
     UserStartedTimer -> Model(..model, current_timer: 0, timer_running: True)
-    UserStoppedTimer -> Model(..model, timer_running: False)
+    UserStoppedTimer ->
+      Model(
+        ..model,
+        timer_running: False,
+        records: list.append(model.records, [
+          model.Record(
+            time: time.from_seconds(model.current_timer),
+            work_item: model.WorkItem(id: "Test", label: "Test"),
+          ),
+        ]),
+      )
     TimerUpdate -> Model(..model, current_timer: model.current_timer + 1)
   }
 
@@ -132,11 +143,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
     UserResetCount -> effect.from(persist_model)
     OnRouteChange(_route) -> effect.none()
     UserOpenedNewItemModal -> effect.from(fn(_) { focus_input("id-work-item") })
-    UserClosedNewItemModal ->
-      effect.from(fn(_) {
-        io.debug(model.current_route)
-        Nil
-      })
+    UserClosedNewItemModal -> effect.from(fn(_) { Nil })
     UserUpdatedInputOfNewWorkItemId(id) -> effect.none()
     UserUpdatedInputOfNewWorkItemLabel(label) -> effect.none()
     UserAttemptedToAddNewItem(id, label) ->
@@ -148,8 +155,6 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       effect.from(fn(_) { write_work_items_to_local_storage(model.work_items) })
     UserPressedKey(key, route) ->
       effect.from(fn(dispatch) {
-        io.debug("user pressed " <> key)
-
         case route {
           router.WorkItems ->
             case key {
@@ -161,13 +166,12 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
         }
       })
     UserStartedTimer -> every(1000, TimerUpdate)
-    UserStoppedTimer -> effect.from(fn(_) { stop_interval("__timer") })
-    TimerUpdate ->
+    UserStoppedTimer ->
       effect.from(fn(_) {
-        io.debug("Dispatched TimerUpdate")
-        io.debug("Current interval: " <> int.to_string(model.current_timer))
-        Nil
+        io.debug(model.records)
+        stop_interval("__timer")
       })
+    TimerUpdate -> effect.from(fn(_) { Nil })
   }
 
   #(model, effect)
@@ -225,6 +229,14 @@ fn timer_button(model: model.Model) {
       ],
     )
 
+  let timer = time.from_seconds(model.current_timer)
+
+  let style = case timer {
+    time.Time(0, 0, _) -> "text-3xl"
+    time.Time(0, _, _) -> "text-2xl"
+    time.Time(_, _, _) -> "text-xl"
+  }
+
   let stop_button =
     html.button(
       [
@@ -234,8 +246,8 @@ fn timer_button(model: model.Model) {
         event.on_click(UserStoppedTimer),
       ],
       [
-        html.div([attribute.class("text-3xl text-white text-semibold")], [
-          html.text(int.to_string(model.current_timer)),
+        html.div([attribute.class("text-white text-semibold " <> style)], [
+          html.text(time.to_string(timer)),
         ]),
       ],
     )
@@ -528,7 +540,6 @@ fn view(model: Model) -> element.Element(Msg) {
 
 fn every(interval: Int, tick: Msg) -> effect.Effect(Msg) {
   effect.from(fn(dispatch) {
-    io.debug("Current interval: " <> int.to_string(interval))
     do_every("__timer", interval, fn() { dispatch(tick) })
   })
 }
@@ -566,7 +577,7 @@ pub fn do_read(key: String) -> Result(String, Nil) {
 
 @external(javascript, "./ffi.mjs", "readModelInfoFromLocalStorage")
 fn read_model_info_from_local_storage() -> String {
-  todo
+  ""
 }
 
 @external(javascript, "./ffi.mjs", "writeWorkItemsToLocalStorage")

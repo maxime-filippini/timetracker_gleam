@@ -26,6 +26,5 @@ pub fn local_storage_model() {
 pub fn local_storage_from_json(
   json_string: String,
 ) -> Result(LocalStorageModel, json.DecodeError) {
-  let out = json.decode(from: json_string, using: local_storage_model())
-  io.debug(out)
+  json.decode(from: json_string, using: local_storage_model())
 }
