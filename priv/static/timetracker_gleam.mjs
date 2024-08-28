@@ -40,10 +40,10 @@ var List = class {
     return desired === 0;
   }
   countLength() {
-    let length3 = 0;
+    let length4 = 0;
     for (let _ of this)
-      length3++;
-    return length3;
+      length4++;
+    return length4;
   }
 };
 function prepend(element2, tail) {
@@ -244,6 +244,16 @@ function remainderInt(a2, b) {
     return a2 % b;
   }
 }
+function divideInt(a2, b) {
+  return Math.trunc(divideFloat(a2, b));
+}
+function divideFloat(a2, b) {
+  if (b === 0) {
+    return 0;
+  } else {
+    return a2 / b;
+  }
+}
 function makeError(variant, module, line, fn, message, extra) {
   let error = new globalThis.Error(message);
   error.gleam_error = variant;
@@ -389,6 +399,48 @@ function do_try_map(loop$list, loop$fun, loop$acc) {
 }
 function try_map(list2, fun) {
   return do_try_map(list2, fun, toList([]));
+}
+function drop(loop$list, loop$n) {
+  while (true) {
+    let list2 = loop$list;
+    let n = loop$n;
+    let $ = n <= 0;
+    if ($) {
+      return list2;
+    } else {
+      if (list2.hasLength(0)) {
+        return toList([]);
+      } else {
+        let xs = list2.tail;
+        loop$list = xs;
+        loop$n = n - 1;
+      }
+    }
+  }
+}
+function do_take(loop$list, loop$n, loop$acc) {
+  while (true) {
+    let list2 = loop$list;
+    let n = loop$n;
+    let acc = loop$acc;
+    let $ = n <= 0;
+    if ($) {
+      return reverse(acc);
+    } else {
+      if (list2.hasLength(0)) {
+        return reverse(acc);
+      } else {
+        let x = list2.head;
+        let xs = list2.tail;
+        loop$list = xs;
+        loop$n = n - 1;
+        loop$acc = prepend(x, acc);
+      }
+    }
+  }
+}
+function take(list2, n) {
+  return do_take(list2, n, toList([]));
 }
 function do_append(loop$first, loop$second) {
   while (true) {
@@ -1335,6 +1387,21 @@ function identity(x) {
 function to_string(term) {
   return term.toString();
 }
+function string_length(string3) {
+  if (string3 === "") {
+    return 0;
+  }
+  const iterator = graphemes_iterator(string3);
+  if (iterator) {
+    let i = 0;
+    for (const _ of iterator) {
+      i++;
+    }
+    return i;
+  } else {
+    return string3.match(/./gsu).length;
+  }
+}
 function graphemes(string3) {
   const iterator = graphemes_iterator(string3);
   if (iterator) {
@@ -1579,7 +1646,178 @@ function inspectUtfCodepoint(codepoint2) {
   return `//utfcodepoint(${String.fromCodePoint(codepoint2.value)})`;
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/iterator.mjs
+var Stop = class extends CustomType {
+};
+var Continue2 = class extends CustomType {
+  constructor(x0, x1) {
+    super();
+    this[0] = x0;
+    this[1] = x1;
+  }
+};
+var Iterator = class extends CustomType {
+  constructor(continuation) {
+    super();
+    this.continuation = continuation;
+  }
+};
+var Next = class extends CustomType {
+  constructor(element2, accumulator) {
+    super();
+    this.element = element2;
+    this.accumulator = accumulator;
+  }
+};
+function stop() {
+  return new Stop();
+}
+function do_unfold(initial, f) {
+  return () => {
+    let $ = f(initial);
+    if ($ instanceof Next) {
+      let x = $.element;
+      let acc = $.accumulator;
+      return new Continue2(x, do_unfold(acc, f));
+    } else {
+      return new Stop();
+    }
+  };
+}
+function unfold(initial, f) {
+  let _pipe = initial;
+  let _pipe$1 = do_unfold(_pipe, f);
+  return new Iterator(_pipe$1);
+}
+function repeatedly(f) {
+  return unfold(void 0, (_) => {
+    return new Next(f(), void 0);
+  });
+}
+function repeat(x) {
+  return repeatedly(() => {
+    return x;
+  });
+}
+function do_fold(loop$continuation, loop$f, loop$accumulator) {
+  while (true) {
+    let continuation = loop$continuation;
+    let f = loop$f;
+    let accumulator = loop$accumulator;
+    let $ = continuation();
+    if ($ instanceof Continue2) {
+      let elem = $[0];
+      let next = $[1];
+      loop$continuation = next;
+      loop$f = f;
+      loop$accumulator = f(accumulator, elem);
+    } else {
+      return accumulator;
+    }
+  }
+}
+function fold2(iterator, initial, f) {
+  let _pipe = iterator.continuation;
+  return do_fold(_pipe, f, initial);
+}
+function to_list(iterator) {
+  let _pipe = iterator;
+  let _pipe$1 = fold2(
+    _pipe,
+    toList([]),
+    (acc, e) => {
+      return prepend(e, acc);
+    }
+  );
+  return reverse(_pipe$1);
+}
+function do_take2(continuation, desired) {
+  return () => {
+    let $ = desired > 0;
+    if (!$) {
+      return new Stop();
+    } else {
+      let $1 = continuation();
+      if ($1 instanceof Stop) {
+        return new Stop();
+      } else {
+        let e = $1[0];
+        let next = $1[1];
+        return new Continue2(e, do_take2(next, desired - 1));
+      }
+    }
+  };
+}
+function take2(iterator, desired) {
+  let _pipe = iterator.continuation;
+  let _pipe$1 = do_take2(_pipe, desired);
+  return new Iterator(_pipe$1);
+}
+function do_append2(first3, second2) {
+  let $ = first3();
+  if ($ instanceof Continue2) {
+    let e = $[0];
+    let first$1 = $[1];
+    return new Continue2(e, () => {
+      return do_append2(first$1, second2);
+    });
+  } else {
+    return second2();
+  }
+}
+function append2(first3, second2) {
+  let _pipe = () => {
+    return do_append2(first3.continuation, second2.continuation);
+  };
+  return new Iterator(_pipe);
+}
+function once(f) {
+  let _pipe = () => {
+    return new Continue2(f(), stop);
+  };
+  return new Iterator(_pipe);
+}
+function single(elem) {
+  return once(() => {
+    return elem;
+  });
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function length2(string3) {
+  return string_length(string3);
+}
+function concat3(strings) {
+  let _pipe = strings;
+  let _pipe$1 = from_strings(_pipe);
+  return to_string3(_pipe$1);
+}
+function do_slice(string3, idx, len) {
+  let _pipe = string3;
+  let _pipe$1 = graphemes(_pipe);
+  let _pipe$2 = drop(_pipe$1, idx);
+  let _pipe$3 = take(_pipe$2, len);
+  return concat3(_pipe$3);
+}
+function slice(string3, idx, len) {
+  let $ = len < 0;
+  if ($) {
+    return "";
+  } else {
+    let $1 = idx < 0;
+    if ($1) {
+      let translated_idx = length2(string3) + idx;
+      let $2 = translated_idx < 0;
+      if ($2) {
+        return "";
+      } else {
+        return do_slice(string3, translated_idx, len);
+      }
+    } else {
+      return do_slice(string3, idx, len);
+    }
+  }
+}
 function split3(x, substring) {
   if (substring === "") {
     return graphemes(x);
@@ -1589,6 +1827,25 @@ function split3(x, substring) {
     let _pipe$2 = split2(_pipe$1, substring);
     return map(_pipe$2, to_string3);
   }
+}
+function padding(size, pad_string) {
+  let pad_length = length2(pad_string);
+  let num_pads = divideInt(size, pad_length);
+  let extra = remainderInt(size, pad_length);
+  let _pipe = repeat(pad_string);
+  let _pipe$1 = take2(_pipe, num_pads);
+  return append2(
+    _pipe$1,
+    single(slice(pad_string, 0, extra))
+  );
+}
+function pad_left(string3, desired_length, pad_string) {
+  let current_length = length2(string3);
+  let to_pad_length = desired_length - current_length;
+  let _pipe = padding(to_pad_length, pad_string);
+  let _pipe$1 = append2(_pipe, single(string3));
+  let _pipe$2 = to_list(_pipe$1);
+  return concat3(_pipe$2);
 }
 function inspect2(term) {
   let _pipe = inspect(term);
@@ -2612,6 +2869,58 @@ function init3() {
   return new Tracker();
 }
 
+// build/dev/javascript/timetracker_gleam/time.mjs
+var Time = class extends CustomType {
+  constructor(hours, minutes, seconds) {
+    super();
+    this.hours = hours;
+    this.minutes = minutes;
+    this.seconds = seconds;
+  }
+};
+function from_seconds(s) {
+  let seconds = remainderInt(s, 60);
+  let minutes = remainderInt(divideInt(s, 60), 60);
+  let hours = divideInt(divideInt(s, 60), 60);
+  return new Time(hours, minutes, seconds);
+}
+function to_string7(t) {
+  let hours = (() => {
+    let $ = t.hours;
+    if ($ === 0) {
+      return "";
+    } else {
+      let h = $;
+      return to_string2(h) + ":";
+    }
+  })();
+  let minutes = (() => {
+    let $ = t.minutes;
+    let $1 = t.hours;
+    if ($ === 0 && $1 === 0) {
+      return "";
+    } else if ($1 === 0) {
+      let m = $;
+      return to_string2(m) + ":";
+    } else {
+      let m = $;
+      return pad_left(to_string2(m), 2, "0") + ":";
+    }
+  })();
+  let seconds = (() => {
+    let $ = t.seconds;
+    let $1 = t.minutes;
+    if ($1 === 0) {
+      let s = $;
+      return to_string2(s);
+    } else {
+      let s = $;
+      return pad_left(to_string2(s), 2, "0");
+    }
+  })();
+  return hours + minutes + seconds;
+}
+
 // build/dev/javascript/timetracker_gleam/model.mjs
 var WorkItem = class extends CustomType {
   constructor(id2, label2) {
@@ -2620,8 +2929,15 @@ var WorkItem = class extends CustomType {
     this.label = label2;
   }
 };
+var Record = class extends CustomType {
+  constructor(time, work_item2) {
+    super();
+    this.time = time;
+    this.work_item = work_item2;
+  }
+};
 var Model = class extends CustomType {
-  constructor(current_route, count, current_task, task_options, work_items, new_work_item_id, new_work_item_label, new_work_item_modal_open, current_timer, timer_running) {
+  constructor(current_route, count, current_task, task_options, work_items, new_work_item_id, new_work_item_label, new_work_item_modal_open, current_timer, timer_running, records) {
     super();
     this.current_route = current_route;
     this.count = count;
@@ -2633,6 +2949,7 @@ var Model = class extends CustomType {
     this.new_work_item_modal_open = new_work_item_modal_open;
     this.current_timer = current_timer;
     this.timer_running = timer_running;
+    this.records = records;
   }
 };
 
@@ -2663,8 +2980,7 @@ function local_storage_model() {
   );
 }
 function local_storage_from_json(json_string) {
-  let out = decode3(json_string, local_storage_model());
-  return debug(out);
+  return decode3(json_string, local_storage_model());
 }
 
 // build/dev/javascript/timetracker_gleam/ffi.mjs
@@ -2696,7 +3012,7 @@ function focusInput(id2) {
 function every(id2, interval, cb) {
   window.__timer = window.setInterval(cb, interval);
 }
-function stop(id2) {
+function stop2(id2) {
   window.clearInterval(window.__timer);
 }
 
@@ -2841,6 +3157,16 @@ function timer_button(model) {
       )
     ])
   );
+  let timer = from_seconds(model.current_timer);
+  let style = (() => {
+    if (timer instanceof Time && timer.hours === 0 && timer.minutes === 0) {
+      return "text-3xl";
+    } else if (timer instanceof Time && timer.hours === 0) {
+      return "text-2xl";
+    } else {
+      return "text-xl";
+    }
+  })();
   let stop_button = button(
     toList([
       class$(
@@ -2850,8 +3176,8 @@ function timer_button(model) {
     ]),
     toList([
       div(
-        toList([class$("text-3xl text-white text-semibold")]),
-        toList([text2(to_string2(model.current_timer))])
+        toList([class$("text-white text-semibold " + style)]),
+        toList([text2(to_string7(timer))])
       )
     ])
   );
@@ -2899,7 +3225,9 @@ function view_tracker(model) {
                         toList([
                           name("selected-work-item"),
                           id("work-item"),
-                          class$("text-bg pl-2 rounded-md")
+                          class$(
+                            "text-bg pl-2 rounded-md sm:min-w-64 min-w-full"
+                          )
                         ]),
                         (() => {
                           let _pipe = model.work_items;
@@ -2936,7 +3264,9 @@ function view_tracker(model) {
                         toList([
                           name("task-description"),
                           id("task-description"),
-                          class$("text-bg pl-2 rounded-md")
+                          class$(
+                            "text-bg pl-2 rounded-md sm:min-w-64 min-w-full"
+                          )
                         ])
                       )
                     ])
@@ -3080,7 +3410,7 @@ function work_item_modal(model) {
                 toList([
                   id("id-work-item"),
                   type_("text"),
-                  class$("text-bg rounded-md grow py-1"),
+                  class$("text-bg rounded-md grow py-1 px-4"),
                   value(model.new_work_item_id),
                   on_input(
                     (var0) => {
@@ -3225,7 +3555,6 @@ function view(model) {
 }
 function write_model_to_local_storage(model) {
   let s_count = to_string2(model.count);
-  debug("Writing model to local storage: count=" + s_count);
   return writeToLocalStorage("count", s_count);
 }
 function init4(_) {
@@ -3236,7 +3565,7 @@ function init4(_) {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      47,
+      48,
       "init",
       "Assignment pattern did not match",
       { value: $ }
@@ -3255,7 +3584,8 @@ function init4(_) {
       "",
       false,
       0,
-      false
+      false,
+      toList([])
     ),
     my_effect
   ];
@@ -3263,7 +3593,6 @@ function init4(_) {
 function every2(interval, tick) {
   return from(
     (dispatch) => {
-      debug("Current interval: " + to_string2(interval));
       return every("__timer", interval, () => {
         return dispatch(tick);
       });
@@ -3325,7 +3654,18 @@ function update(model, msg) {
     } else if (msg instanceof UserStartedTimer) {
       return model.withFields({ current_timer: 0, timer_running: true });
     } else if (msg instanceof UserStoppedTimer) {
-      return model.withFields({ timer_running: false });
+      return model.withFields({
+        timer_running: false,
+        records: append(
+          model.records,
+          toList([
+            new Record(
+              from_seconds(model.current_timer),
+              new WorkItem("Test", "Test")
+            )
+          ])
+        )
+      });
     } else {
       return model.withFields({ current_timer: model.current_timer + 1 });
     }
@@ -3347,12 +3687,9 @@ function update(model, msg) {
         return focusInput("id-work-item");
       });
     } else if (msg instanceof UserClosedNewItemModal) {
-      return from(
-        (_) => {
-          debug(model$1.current_route);
-          return void 0;
-        }
-      );
+      return from((_) => {
+        return void 0;
+      });
     } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
       let id2 = msg.id;
       return none();
@@ -3380,7 +3717,6 @@ function update(model, msg) {
       let route = msg.route;
       return from(
         (dispatch) => {
-          debug("user pressed " + key);
           if (route instanceof WorkItems) {
             if (key === "N") {
               return dispatch(new UserOpenedNewItemModal());
@@ -3397,19 +3733,16 @@ function update(model, msg) {
     } else if (msg instanceof UserStartedTimer) {
       return every2(1e3, new TimerUpdate());
     } else if (msg instanceof UserStoppedTimer) {
-      return from((_) => {
-        return stop("__timer");
-      });
-    } else {
       return from(
         (_) => {
-          debug("Dispatched TimerUpdate");
-          debug(
-            "Current interval: " + to_string2(model$1.current_timer)
-          );
-          return void 0;
+          debug(model$1.records);
+          return stop2("__timer");
         }
       );
+    } else {
+      return from((_) => {
+        return void 0;
+      });
     }
   })();
   return [model$1, effect];
@@ -3421,7 +3754,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      534,
+      549,
       "main",
       "Assignment pattern did not match",
       { value: $ }
