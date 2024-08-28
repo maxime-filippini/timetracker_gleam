@@ -998,6 +998,10 @@ body {
     min-width: 8rem;
   }
 
+  .sm\:min-w-64 {
+    min-width: 16rem;
+  }
+
   .sm\:grow-0 {
     flex-grow: 0;
   }

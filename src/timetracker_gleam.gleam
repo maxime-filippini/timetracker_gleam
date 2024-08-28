@@ -275,7 +275,9 @@ fn view_tracker(model: Model) {
                   [
                     attribute.name("selected-work-item"),
                     attribute.id("work-item"),
-                    attribute.class("text-bg pl-2 rounded-md"),
+                    attribute.class(
+                      "text-bg pl-2 rounded-md sm:min-w-64 min-w-full",
+                    ),
                   ],
                   model.work_items
                     |> list.map(fn(work_item) {
@@ -304,7 +306,9 @@ fn view_tracker(model: Model) {
                 html.input([
                   attribute.name("task-description"),
                   attribute.id("task-description"),
-                  attribute.class("text-bg pl-2 rounded-md"),
+                  attribute.class(
+                    "text-bg pl-2 rounded-md sm:min-w-64 min-w-full",
+                  ),
                 ]),
               ],
             ),

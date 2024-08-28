@@ -2899,7 +2899,9 @@ function view_tracker(model) {
                         toList([
                           name("selected-work-item"),
                           id("work-item"),
-                          class$("text-bg pl-2 rounded-md")
+                          class$(
+                            "text-bg pl-2 rounded-md sm:min-w-64 min-w-full"
+                          )
                         ]),
                         (() => {
                           let _pipe = model.work_items;
@@ -2936,7 +2938,9 @@ function view_tracker(model) {
                         toList([
                           name("task-description"),
                           id("task-description"),
-                          class$("text-bg pl-2 rounded-md")
+                          class$(
+                            "text-bg pl-2 rounded-md sm:min-w-64 min-w-full"
+                          )
                         ])
                       )
                     ])
@@ -3421,7 +3425,7 @@ function main() {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      534,
+      538,
       "main",
       "Assignment pattern did not match",
       { value: $ }
