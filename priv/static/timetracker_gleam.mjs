@@ -108,11 +108,6 @@ var BitArray = class _BitArray {
     return new _BitArray(this.buffer.slice(index2));
   }
 };
-var UtfCodepoint = class {
-  constructor(value3) {
-    this.value = value3;
-  }
-};
 function byteArrayToInt(byteArray, start4, end, isBigEndian, isSigned) {
   let value3 = 0;
   if (isBigEndian) {
@@ -134,12 +129,12 @@ function byteArrayToInt(byteArray, start4, end, isBigEndian, isSigned) {
   return value3;
 }
 function byteArrayToFloat(byteArray, start4, end, isBigEndian) {
-  const view2 = new DataView(byteArray.buffer);
+  const view5 = new DataView(byteArray.buffer);
   const byteSize = end - start4;
   if (byteSize === 8) {
-    return view2.getFloat64(start4, !isBigEndian);
+    return view5.getFloat64(start4, !isBigEndian);
   } else if (byteSize === 4) {
-    return view2.getFloat32(start4, !isBigEndian);
+    return view5.getFloat32(start4, !isBigEndian);
   } else {
     const msg = `Sized floats must be 32-bit or 64-bit on JavaScript, got size of ${byteSize * 8} bits`;
     throw new globalThis.Error(msg);
@@ -456,7 +451,7 @@ function do_append(loop$first, loop$second) {
     }
   }
 }
-function append(first3, second2) {
+function append2(first3, second2) {
   return do_append(reverse(first3), second2);
 }
 function reverse_and_prepend(loop$prefix, loop$suffix) {
@@ -677,6 +672,26 @@ function decode2(constructor, t1, t2) {
       let a2 = $;
       let b = $1;
       return new Error(concat(toList([all_errors(a2), all_errors(b)])));
+    }
+  };
+}
+function decode3(constructor, t1, t2, t3) {
+  return (value3) => {
+    let $ = t1(value3);
+    let $1 = t2(value3);
+    let $2 = t3(value3);
+    if ($.isOk() && $1.isOk() && $2.isOk()) {
+      let a2 = $[0];
+      let b = $1[0];
+      let c = $2[0];
+      return new Ok(constructor(a2, b, c));
+    } else {
+      let a2 = $;
+      let b = $1;
+      let c = $2;
+      return new Error(
+        concat(toList([all_errors(a2), all_errors(b), all_errors(c)]))
+      );
     }
   };
 }
@@ -1447,20 +1462,8 @@ var unicode_whitespaces = [
 ].join("");
 var left_trim_regex = new RegExp(`^([${unicode_whitespaces}]*)`, "g");
 var right_trim_regex = new RegExp(`([${unicode_whitespaces}]*)$`, "g");
-function console_log(term) {
-  console.log(term);
-}
-function print_debug(string3) {
-  if (typeof process === "object" && process.stderr?.write) {
-    process.stderr.write(string3 + "\n");
-  } else if (typeof Deno === "object") {
-    Deno.stderr.writeSync(new TextEncoder().encode(string3 + "\n"));
-  } else {
-    console.log(string3);
-  }
-}
-function map_get(map5, key) {
-  const value3 = map5.get(key, NOT_FOUND);
+function map_get(map7, key) {
+  const value3 = map7.get(key, NOT_FOUND);
   if (value3 === NOT_FOUND) {
     return new Error(Nil);
   }
@@ -1534,117 +1537,6 @@ function try_get_field(value3, field2, or_else) {
     return or_else();
   }
 }
-function inspect(v) {
-  const t = typeof v;
-  if (v === true)
-    return "True";
-  if (v === false)
-    return "False";
-  if (v === null)
-    return "//js(null)";
-  if (v === void 0)
-    return "Nil";
-  if (t === "string")
-    return inspectString(v);
-  if (t === "bigint" || t === "number")
-    return v.toString();
-  if (Array.isArray(v))
-    return `#(${v.map(inspect).join(", ")})`;
-  if (v instanceof List)
-    return inspectList(v);
-  if (v instanceof UtfCodepoint)
-    return inspectUtfCodepoint(v);
-  if (v instanceof BitArray)
-    return inspectBitArray(v);
-  if (v instanceof CustomType)
-    return inspectCustomType(v);
-  if (v instanceof Dict)
-    return inspectDict(v);
-  if (v instanceof Set)
-    return `//js(Set(${[...v].map(inspect).join(", ")}))`;
-  if (v instanceof RegExp)
-    return `//js(${v})`;
-  if (v instanceof Date)
-    return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys())
-      args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return inspectObject(v);
-}
-function inspectString(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    switch (char) {
-      case "\n":
-        new_str += "\\n";
-        break;
-      case "\r":
-        new_str += "\\r";
-        break;
-      case "	":
-        new_str += "\\t";
-        break;
-      case "\f":
-        new_str += "\\f";
-        break;
-      case "\\":
-        new_str += "\\\\";
-        break;
-      case '"':
-        new_str += '\\"';
-        break;
-      default:
-        if (char < " " || char > "~" && char < "\xA0") {
-          new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-        } else {
-          new_str += char;
-        }
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function inspectDict(map5) {
-  let body2 = "dict.from_list([";
-  let first3 = true;
-  map5.forEach((value3, key) => {
-    if (!first3)
-      body2 = body2 + ", ";
-    body2 = body2 + "#(" + inspect(key) + ", " + inspect(value3) + ")";
-    first3 = false;
-  });
-  return body2 + "])";
-}
-function inspectObject(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${inspect(k)}: ${inspect(v[k])}`);
-  }
-  const body2 = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body2}})`;
-}
-function inspectCustomType(record) {
-  const props = Object.keys(record).map((label2) => {
-    const value3 = inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function inspectList(list2) {
-  return `[${list2.toArray().map(inspect).join(", ")}]`;
-}
-function inspectBitArray(bits) {
-  return `<<${Array.from(bits.buffer).join(", ")}>>`;
-}
-function inspectUtfCodepoint(codepoint2) {
-  return `//utfcodepoint(${String.fromCodePoint(codepoint2.value)})`;
-}
 
 // build/dev/javascript/gleam_stdlib/gleam/iterator.mjs
 var Stop = class extends CustomType {
@@ -1694,7 +1586,7 @@ function repeatedly(f) {
     return new Next(f(), void 0);
   });
 }
-function repeat(x) {
+function repeat2(x) {
   return repeatedly(() => {
     return x;
   });
@@ -1765,7 +1657,7 @@ function do_append2(first3, second2) {
     return second2();
   }
 }
-function append2(first3, second2) {
+function append3(first3, second2) {
   let _pipe = () => {
     return do_append2(first3.continuation, second2.continuation);
   };
@@ -1832,9 +1724,9 @@ function padding(size, pad_string) {
   let pad_length = length2(pad_string);
   let num_pads = divideInt(size, pad_length);
   let extra = remainderInt(size, pad_length);
-  let _pipe = repeat(pad_string);
+  let _pipe = repeat2(pad_string);
   let _pipe$1 = take2(_pipe, num_pads);
-  return append2(
+  return append3(
     _pipe$1,
     single(slice(pad_string, 0, extra))
   );
@@ -1843,13 +1735,70 @@ function pad_left(string3, desired_length, pad_string) {
   let current_length = length2(string3);
   let to_pad_length = desired_length - current_length;
   let _pipe = padding(to_pad_length, pad_string);
-  let _pipe$1 = append2(_pipe, single(string3));
+  let _pipe$1 = append3(_pipe, single(string3));
   let _pipe$2 = to_list(_pipe$1);
   return concat3(_pipe$2);
 }
-function inspect2(term) {
-  let _pipe = inspect(term);
-  return to_string3(_pipe);
+
+// build/dev/javascript/gleam_stdlib/gleam/uri.mjs
+var Uri = class extends CustomType {
+  constructor(scheme, userinfo, host, port, path, query, fragment) {
+    super();
+    this.scheme = scheme;
+    this.userinfo = userinfo;
+    this.host = host;
+    this.port = port;
+    this.path = path;
+    this.query = query;
+    this.fragment = fragment;
+  }
+};
+function do_remove_dot_segments(loop$input, loop$accumulator) {
+  while (true) {
+    let input2 = loop$input;
+    let accumulator = loop$accumulator;
+    if (input2.hasLength(0)) {
+      return reverse(accumulator);
+    } else {
+      let segment = input2.head;
+      let rest = input2.tail;
+      let accumulator$1 = (() => {
+        if (segment === "") {
+          let accumulator$12 = accumulator;
+          return accumulator$12;
+        } else if (segment === ".") {
+          let accumulator$12 = accumulator;
+          return accumulator$12;
+        } else if (segment === ".." && accumulator.hasLength(0)) {
+          return toList([]);
+        } else if (segment === ".." && accumulator.atLeastLength(1)) {
+          let accumulator$12 = accumulator.tail;
+          return accumulator$12;
+        } else {
+          let segment$1 = segment;
+          let accumulator$12 = accumulator;
+          return prepend(segment$1, accumulator$12);
+        }
+      })();
+      loop$input = rest;
+      loop$accumulator = accumulator$1;
+    }
+  }
+}
+function remove_dot_segments(input2) {
+  return do_remove_dot_segments(input2, toList([]));
+}
+function path_segments(path) {
+  return remove_dot_segments(split3(path, "/"));
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
+function guard(requirement, consequence, alternative) {
+  if (requirement) {
+    return consequence;
+  } else {
+    return alternative();
+  }
 }
 
 // build/dev/javascript/gleam_json/gleam_json_ffi.mjs
@@ -1970,80 +1919,8 @@ function do_decode(json, decoder) {
     }
   );
 }
-function decode3(json, decoder) {
+function decode4(json, decoder) {
   return do_decode(json, decoder);
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/io.mjs
-function println(string3) {
-  return console_log(string3);
-}
-function debug(term) {
-  let _pipe = term;
-  let _pipe$1 = inspect2(_pipe);
-  print_debug(_pipe$1);
-  return term;
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/uri.mjs
-var Uri = class extends CustomType {
-  constructor(scheme, userinfo, host, port, path, query, fragment) {
-    super();
-    this.scheme = scheme;
-    this.userinfo = userinfo;
-    this.host = host;
-    this.port = port;
-    this.path = path;
-    this.query = query;
-    this.fragment = fragment;
-  }
-};
-function do_remove_dot_segments(loop$input, loop$accumulator) {
-  while (true) {
-    let input2 = loop$input;
-    let accumulator = loop$accumulator;
-    if (input2.hasLength(0)) {
-      return reverse(accumulator);
-    } else {
-      let segment = input2.head;
-      let rest = input2.tail;
-      let accumulator$1 = (() => {
-        if (segment === "") {
-          let accumulator$12 = accumulator;
-          return accumulator$12;
-        } else if (segment === ".") {
-          let accumulator$12 = accumulator;
-          return accumulator$12;
-        } else if (segment === ".." && accumulator.hasLength(0)) {
-          return toList([]);
-        } else if (segment === ".." && accumulator.atLeastLength(1)) {
-          let accumulator$12 = accumulator.tail;
-          return accumulator$12;
-        } else {
-          let segment$1 = segment;
-          let accumulator$12 = accumulator;
-          return prepend(segment$1, accumulator$12);
-        }
-      })();
-      loop$input = rest;
-      loop$accumulator = accumulator$1;
-    }
-  }
-}
-function remove_dot_segments(input2) {
-  return do_remove_dot_segments(input2, toList([]));
-}
-function path_segments(path) {
-  return remove_dot_segments(split3(path, "/"));
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/bool.mjs
-function guard(requirement, consequence, alternative) {
-  if (requirement) {
-    return consequence;
-  } else {
-    return alternative();
-  }
 }
 
 // build/dev/javascript/lustre/lustre/effect.mjs
@@ -2068,7 +1945,21 @@ function batch(effects) {
       toList([]),
       (b, _use1) => {
         let a2 = _use1.all;
-        return append(b, a2);
+        return append2(b, a2);
+      }
+    )
+  );
+}
+function map4(effect, f) {
+  return new Effect(
+    map(
+      effect.all,
+      (eff) => {
+        return (dispatch, emit2) => {
+          return eff((msg) => {
+            return dispatch(f(msg));
+          }, emit2);
+        };
       }
     )
   );
@@ -2093,6 +1984,19 @@ var Element = class extends CustomType {
     this.void = void$;
   }
 };
+var Map2 = class extends CustomType {
+  constructor(subtree) {
+    super();
+    this.subtree = subtree;
+  }
+};
+var Fragment = class extends CustomType {
+  constructor(elements, key) {
+    super();
+    this.elements = elements;
+    this.key = key;
+  }
+};
 var Attribute = class extends CustomType {
   constructor(x0, x1, as_property) {
     super();
@@ -2113,8 +2017,25 @@ var Event = class extends CustomType {
 function attribute(name2, value3) {
   return new Attribute(name2, identity(value3), false);
 }
+function property(name2, value3) {
+  return new Attribute(name2, identity(value3), true);
+}
 function on(name2, handler) {
   return new Event("on" + name2, handler);
+}
+function map5(attr, f) {
+  if (attr instanceof Attribute) {
+    let name$1 = attr[0];
+    let value$1 = attr[1];
+    let as_property = attr.as_property;
+    return new Attribute(name$1, value$1, as_property);
+  } else {
+    let on$1 = attr[0];
+    let handler = attr[1];
+    return new Event(on$1, (e) => {
+      return map2(handler(e), f);
+    });
+  }
 }
 function class$(name2) {
   return attribute("class", name2);
@@ -2127,6 +2048,9 @@ function type_(name2) {
 }
 function value(val) {
   return attribute("value", val);
+}
+function disabled(is_disabled) {
+  return property("disabled", is_disabled);
 }
 function name(name2) {
   return attribute("name", name2);
@@ -2174,6 +2098,58 @@ function element(tag, attrs, children) {
 }
 function text(content) {
   return new Text(content);
+}
+function map6(element2, f) {
+  if (element2 instanceof Text) {
+    let content = element2.content;
+    return new Text(content);
+  } else if (element2 instanceof Map2) {
+    let subtree = element2.subtree;
+    return new Map2(() => {
+      return map6(subtree(), f);
+    });
+  } else if (element2 instanceof Element) {
+    let key = element2.key;
+    let namespace = element2.namespace;
+    let tag = element2.tag;
+    let attrs = element2.attrs;
+    let children = element2.children;
+    let self_closing = element2.self_closing;
+    let void$ = element2.void;
+    return new Map2(
+      () => {
+        return new Element(
+          key,
+          namespace,
+          tag,
+          map(
+            attrs,
+            (_capture) => {
+              return map5(_capture, f);
+            }
+          ),
+          map(children, (_capture) => {
+            return map6(_capture, f);
+          }),
+          self_closing,
+          void$
+        );
+      }
+    );
+  } else {
+    let elements = element2.elements;
+    let key = element2.key;
+    return new Map2(
+      () => {
+        return new Fragment(
+          map(elements, (_capture) => {
+            return map6(_capture, f);
+          }),
+          key
+        );
+      }
+    );
+  }
 }
 
 // build/dev/javascript/lustre/lustre/internals/runtime.mjs
@@ -2392,8 +2368,8 @@ function lustreServerEventHandler(event2) {
   return {
     tag,
     data: include.reduce(
-      (data2, property) => {
-        const path = property.split(".");
+      (data2, property2) => {
+        const path = property2.split(".");
         for (let i = 0, o = data2, e = event2; i < path.length; i++) {
           if (i === path.length - 1) {
             o[path[i]] = e[path[i]];
@@ -2483,19 +2459,19 @@ var LustreClientApplication2 = class _LustreClientApplication {
   #model = null;
   #update = null;
   #view = null;
-  static start(flags, selector, init5, update2, view2) {
+  static start(flags, selector, init9, update5, view5) {
     if (!is_browser())
       return new Error(new NotABrowser());
     const root2 = selector instanceof HTMLElement ? selector : document.querySelector(selector);
     if (!root2)
       return new Error(new ElementNotFound(selector));
-    const app = new _LustreClientApplication(init5(flags), update2, view2, root2);
+    const app = new _LustreClientApplication(init9(flags), update5, view5, root2);
     return new Ok((msg) => app.send(msg));
   }
-  constructor([model, effects], update2, view2, root2 = document.body, isComponent = false) {
+  constructor([model, effects], update5, view5, root2 = document.body, isComponent = false) {
     this.#model = model;
-    this.#update = update2;
-    this.#view = view2;
+    this.#update = update5;
+    this.#view = view5;
     this.#root = root2;
     this.#effects = effects.all.toArray();
     this.#didUpdate = true;
@@ -2607,11 +2583,11 @@ var prevent_default = (event2) => event2.preventDefault();
 
 // build/dev/javascript/lustre/lustre.mjs
 var App = class extends CustomType {
-  constructor(init5, update2, view2, on_attribute_change) {
+  constructor(init9, update5, view5, on_attribute_change) {
     super();
-    this.init = init5;
-    this.update = update2;
-    this.view = view2;
+    this.init = init9;
+    this.update = update5;
+    this.view = view5;
     this.on_attribute_change = on_attribute_change;
   }
 };
@@ -2623,8 +2599,8 @@ var ElementNotFound = class extends CustomType {
 };
 var NotABrowser = class extends CustomType {
 };
-function application(init5, update2, view2) {
-  return new App(init5, update2, view2, new None());
+function application(init9, update5, view5) {
+  return new App(init9, update5, view5, new None());
 }
 function start3(app, selector, flags) {
   return guard(
@@ -2639,9 +2615,6 @@ function start3(app, selector, flags) {
 // build/dev/javascript/lustre/lustre/element/html.mjs
 function text2(content) {
   return text(content);
-}
-function body(attrs, children) {
-  return element("body", attrs, children);
 }
 function h1(attrs, children) {
   return element("h1", attrs, children);
@@ -2702,50 +2675,6 @@ function option(attrs, label2) {
 }
 function select(attrs, children) {
   return element("select", attrs, children);
-}
-
-// build/dev/javascript/lustre/lustre/event.mjs
-function on2(name2, handler) {
-  return on(name2, handler);
-}
-function on_click(msg) {
-  return on2("click", (_) => {
-    return new Ok(msg);
-  });
-}
-function on_keypress(msg) {
-  return on2(
-    "keypress",
-    (event2) => {
-      let _pipe = event2;
-      let _pipe$1 = field("key", string)(_pipe);
-      return map2(_pipe$1, msg);
-    }
-  );
-}
-function value2(event2) {
-  let _pipe = event2;
-  return field("target", field("value", string))(
-    _pipe
-  );
-}
-function on_input(msg) {
-  return on2(
-    "input",
-    (event2) => {
-      let _pipe = value2(event2);
-      return map2(_pipe, msg);
-    }
-  );
-}
-function on_submit(msg) {
-  return on2(
-    "submit",
-    (event2) => {
-      let $ = prevent_default(event2);
-      return new Ok(msg);
-    }
-  );
 }
 
 // build/dev/javascript/modem/modem.ffi.mjs
@@ -2848,6 +2777,74 @@ function init2(handler) {
   );
 }
 
+// build/dev/javascript/timetracker_gleam/components/basic.mjs
+function horizontal_bar() {
+  return div(
+    toList([class$("border-b-2 border-b-surface-0")]),
+    toList([])
+  );
+}
+function header() {
+  return div(
+    toList([]),
+    toList([
+      h1(
+        toList([class$("text-3xl")]),
+        toList([text("Time tracker")])
+      ),
+      p(
+        toList([]),
+        toList([
+          text("A small app to track your time spent on work items.")
+        ])
+      )
+    ])
+  );
+}
+
+// build/dev/javascript/timetracker_gleam/ffi.mjs
+function readModelInfoFromLocalStorage() {
+  let count = window.localStorage.getItem("count");
+  let workItems = window.localStorage.getItem("work_items");
+  let records = window.localStorage.getItem("records");
+  count = count ? JSON.parse(count) : 0;
+  workItems = workItems ? JSON.parse(workItems) : [];
+  records = records ? JSON.parse(records) : [];
+  let out = JSON.stringify({
+    count,
+    work_items: workItems,
+    records
+  });
+  console.log(out);
+  return out;
+}
+function linkedListToArray(list2) {
+  if (list2 instanceof Empty) {
+    return [];
+  } else {
+    return [list2.head].concat(linkedListToArray(list2.tail));
+  }
+}
+function writeWorkItemsToLocalStorage(lst) {
+  let js_lst = linkedListToArray(lst);
+  window.localStorage.setItem("work_items", JSON.stringify(js_lst));
+}
+function writeRecordsToLocalStorage(lst) {
+  let js_lst = linkedListToArray(lst);
+  window.localStorage.setItem("records", JSON.stringify(js_lst));
+}
+function focusInput(id2) {
+  window.requestAnimationFrame(() => {
+    window.setTimeout(() => document.getElementById(id2).focus(), 0);
+  });
+}
+function every(interval, cb) {
+  window.__timer = window.setInterval(cb, interval);
+}
+function stop2(id2) {
+  window.clearInterval(window.__timer);
+}
+
 // build/dev/javascript/timetracker_gleam/router.mjs
 var Tracker = class extends CustomType {
 };
@@ -2884,10 +2881,10 @@ function from_seconds(s) {
   let hours = divideInt(divideInt(s, 60), 60);
   return new Time(hours, minutes, seconds);
 }
-function to_string7(t) {
+function to_string7(t, simple) {
   let hours = (() => {
     let $ = t.hours;
-    if ($ === 0) {
+    if ($ === 0 && simple) {
       return "";
     } else {
       let h = $;
@@ -2897,9 +2894,9 @@ function to_string7(t) {
   let minutes = (() => {
     let $ = t.minutes;
     let $1 = t.hours;
-    if ($ === 0 && $1 === 0) {
+    if ($ === 0 && $1 === 0 && simple) {
       return "";
-    } else if ($1 === 0) {
+    } else if ($1 === 0 && simple) {
       let m = $;
       return to_string2(m) + ":";
     } else {
@@ -2910,7 +2907,7 @@ function to_string7(t) {
   let seconds = (() => {
     let $ = t.seconds;
     let $1 = t.minutes;
-    if ($1 === 0) {
+    if ($1 === 0 && simple) {
       let s = $;
       return to_string2(s);
     } else {
@@ -2921,7 +2918,7 @@ function to_string7(t) {
   return hours + minutes + seconds;
 }
 
-// build/dev/javascript/timetracker_gleam/model.mjs
+// build/dev/javascript/timetracker_gleam/data/global.mjs
 var WorkItem = class extends CustomType {
   constructor(id2, label2) {
     super();
@@ -2930,213 +2927,287 @@ var WorkItem = class extends CustomType {
   }
 };
 var Record = class extends CustomType {
-  constructor(time, work_item2) {
+  constructor(time, work_item_id, description) {
     super();
     this.time = time;
-    this.work_item = work_item2;
+    this.work_item_id = work_item_id;
+    this.description = description;
   }
 };
 var Model = class extends CustomType {
-  constructor(current_route, count, current_task, task_options, work_items, new_work_item_id, new_work_item_label, new_work_item_modal_open, current_timer, timer_running, records) {
+  constructor(current_route, work_items, records) {
     super();
     this.current_route = current_route;
-    this.count = count;
-    this.current_task = current_task;
-    this.task_options = task_options;
     this.work_items = work_items;
-    this.new_work_item_id = new_work_item_id;
-    this.new_work_item_label = new_work_item_label;
-    this.new_work_item_modal_open = new_work_item_modal_open;
-    this.current_timer = current_timer;
-    this.timer_running = timer_running;
     this.records = records;
   }
 };
-
-// build/dev/javascript/timetracker_gleam/decoders.mjs
 var LocalStorageModel = class extends CustomType {
-  constructor(count, work_items) {
+  constructor(count, work_items, records) {
     super();
     this.count = count;
     this.work_items = work_items;
+    this.records = records;
   }
 };
-function work_item() {
-  return decode2(
+function local_storage_model() {
+  let work_item = decode2(
     (var0, var1) => {
       return new WorkItem(var0, var1);
     },
     field("id", string),
     field("label", string)
   );
-}
-function local_storage_model() {
-  return decode2(
-    (var0, var1) => {
-      return new LocalStorageModel(var0, var1);
+  let time_decoder = decode3(
+    (var0, var1, var2) => {
+      return new Time(var0, var1, var2);
+    },
+    field("hours", int),
+    field("minutes", int),
+    field("seconds", int)
+  );
+  let record = decode3(
+    (var0, var1, var2) => {
+      return new Record(var0, var1, var2);
+    },
+    field("time", time_decoder),
+    field("work_item_id", string),
+    field("description", string)
+  );
+  return decode3(
+    (var0, var1, var2) => {
+      return new LocalStorageModel(var0, var1, var2);
     },
     field("count", int),
-    field("work_items", list(work_item()))
+    field("work_items", list(work_item)),
+    field("records", list(record))
   );
 }
-function local_storage_from_json(json_string) {
-  return decode3(json_string, local_storage_model());
+function init4() {
+  let str_local_storage = readModelInfoFromLocalStorage();
+  let $ = decode4(str_local_storage, local_storage_model());
+  if (!$.isOk()) {
+    throw makeError(
+      "assignment_no_match",
+      "data/global",
+      65,
+      "init",
+      "Assignment pattern did not match",
+      { value: $ }
+    );
+  }
+  let local_storage_model$1 = $[0];
+  return new Model(
+    init3(),
+    local_storage_model$1.work_items,
+    local_storage_model$1.records
+  );
 }
 
-// build/dev/javascript/timetracker_gleam/ffi.mjs
-function writeToLocalStorage(key, value3) {
-  window.localStorage.setItem(key, String(value3));
+// build/dev/javascript/lustre/lustre/event.mjs
+function on2(name2, handler) {
+  return on(name2, handler);
 }
-function readModelInfoFromLocalStorage() {
-  let count = window.localStorage.getItem("count");
-  let workItems = window.localStorage.getItem("work_items");
-  count = count ? JSON.parse(count) : 0;
-  workItems = workItems ? JSON.parse(workItems) : [];
-  let out = JSON.stringify({ count, work_items: workItems });
-  return out;
+function on_click(msg) {
+  return on2("click", (_) => {
+    return new Ok(msg);
+  });
 }
-function linkedListToArray(list2) {
-  if (list2 instanceof Empty) {
-    return [];
-  } else {
-    return [list2.head].concat(linkedListToArray(list2.tail));
-  }
+function value2(event2) {
+  let _pipe = event2;
+  return field("target", field("value", string))(
+    _pipe
+  );
 }
-function writeWorkItemsToLocalStorage(lst) {
-  let js_lst = linkedListToArray(lst);
-  window.localStorage.setItem("work_items", JSON.stringify(js_lst));
+function on_input(msg) {
+  return on2(
+    "input",
+    (event2) => {
+      let _pipe = value2(event2);
+      return map2(_pipe, msg);
+    }
+  );
 }
-function focusInput(id2) {
-  window.setTimeout(() => document.getElementById(id2).focus(), 0);
-}
-function every(id2, interval, cb) {
-  window.__timer = window.setInterval(cb, interval);
-}
-function stop2(id2) {
-  window.clearInterval(window.__timer);
+function on_submit(msg) {
+  return on2(
+    "submit",
+    (event2) => {
+      let $ = prevent_default(event2);
+      return new Ok(msg);
+    }
+  );
 }
 
-// build/dev/javascript/timetracker_gleam/timetracker_gleam.mjs
-var UserIncrementedCount = class extends CustomType {
-};
-var UserDecrementedCount = class extends CustomType {
-};
-var UserResetCount = class extends CustomType {
-};
-var OnRouteChange = class extends CustomType {
-  constructor(x0) {
+// build/dev/javascript/timetracker_gleam/pages/analytics.mjs
+var Model2 = class extends CustomType {
+  constructor(records) {
     super();
-    this[0] = x0;
+    this.records = records;
   }
 };
-var UserOpenedNewItemModal = class extends CustomType {
-};
-var UserClosedNewItemModal = class extends CustomType {
-};
-var UserUpdatedInputOfNewWorkItemId = class extends CustomType {
-  constructor(id2) {
+function init5(global_model) {
+  return new Model2(global_model.records);
+}
+function update(model, msg) {
+  return [model, none()];
+}
+function analytics_table(model) {
+  let headers = (() => {
+    let _pipe = toList(["Work item ID", "Description", "Time"]);
+    return map(
+      _pipe,
+      (label2) => {
+        return th(
+          toList([class$("w-1/3")]),
+          toList([text2(label2)])
+        );
+      }
+    );
+  })();
+  let rows = (() => {
+    let _pipe = model.records;
+    return index_map(
+      _pipe,
+      (rec, ix) => {
+        let tr_cls = (() => {
+          let $ = remainderInt(ix, 2) === 0;
+          if ($) {
+            return "";
+          } else {
+            return "bg-surface-0";
+          }
+        })();
+        return tr(
+          toList([class$(tr_cls)]),
+          toList([
+            td(
+              toList([class$("text-center")]),
+              toList([text2(rec.work_item_id)])
+            ),
+            td(
+              toList([class$("text-center")]),
+              toList([text2(rec.description)])
+            ),
+            td(
+              toList([class$("text-center")]),
+              toList([text2(to_string7(rec.time, false))])
+            )
+          ])
+        );
+      }
+    );
+  })();
+  return table(
+    toList([class$("w-full table-auto rounded-md")]),
+    toList([
+      thead(
+        toList([class$("")]),
+        toList([
+          tr(
+            toList([class$("bg-surface-2 text-white")]),
+            headers
+          )
+        ])
+      ),
+      tbody(toList([]), rows)
+    ])
+  );
+}
+function view(model) {
+  return analytics_table(model);
+}
+
+// build/dev/javascript/timetracker_gleam/pages/tracker.mjs
+var Model3 = class extends CustomType {
+  constructor(active, current_time, id2, description, work_items) {
     super();
+    this.active = active;
+    this.current_time = current_time;
     this.id = id2;
-  }
-};
-var UserUpdatedInputOfNewWorkItemLabel = class extends CustomType {
-  constructor(label2) {
-    super();
-    this.label = label2;
-  }
-};
-var UserAttemptedToAddNewItem = class extends CustomType {
-  constructor(id2, label2) {
-    super();
-    this.id = id2;
-    this.label = label2;
-  }
-};
-var UserDeletedWorkItem = class extends CustomType {
-  constructor(work_item2) {
-    super();
-    this.work_item = work_item2;
-  }
-};
-var UserPressedKey = class extends CustomType {
-  constructor(key, route) {
-    super();
-    this.key = key;
-    this.route = route;
+    this.description = description;
+    this.work_items = work_items;
   }
 };
 var UserStartedTimer = class extends CustomType {
 };
 var UserStoppedTimer = class extends CustomType {
 };
-var TimerUpdate = class extends CustomType {
-};
-var NavItem = class extends CustomType {
-  constructor(url, title, route) {
+var UserUpdatedId = class extends CustomType {
+  constructor(id2) {
     super();
-    this.url = url;
-    this.title = title;
-    this.route = route;
+    this.id = id2;
   }
 };
-function on_url_change(uri) {
-  let _pipe = on_route_change(uri);
-  return new OnRouteChange(_pipe);
+var UserUpdatedDescription = class extends CustomType {
+  constructor(desc) {
+    super();
+    this.desc = desc;
+  }
+};
+var TimerUpdate = class extends CustomType {
+};
+var AddRecord = class extends CustomType {
+  constructor(record) {
+    super();
+    this.record = record;
+  }
+};
+function init6(global_model) {
+  let id2 = (() => {
+    let $ = global_model.work_items;
+    if ($.atLeastLength(1)) {
+      let first3 = $.head;
+      return first3.id;
+    } else {
+      return "";
+    }
+  })();
+  return new Model3(false, 0, id2, "", global_model.work_items);
 }
-function header() {
-  return div(
-    toList([]),
-    toList([
-      h1(
-        toList([class$("text-3xl")]),
-        toList([text("Time tracker")])
-      ),
-      p(
-        toList([]),
-        toList([
-          text("A small app to track your time spent on work items.")
-        ])
+function update2(model, msg) {
+  if (msg instanceof TimerUpdate) {
+    return [
+      model.withFields({ current_time: model.current_time + 1 }),
+      none()
+    ];
+  } else if (msg instanceof UserStartedTimer) {
+    return [
+      model.withFields({ active: true, current_time: 0 }),
+      from(
+        (dispatch) => {
+          return every(
+            1e3,
+            () => {
+              return dispatch(new TimerUpdate());
+            }
+          );
+        }
       )
-    ])
-  );
-}
-function horizontal_bar() {
-  return div(
-    toList([class$("border-b-2 border-b-surface-0")]),
-    toList([])
-  );
-}
-function nav_bar(items) {
-  return div(
-    toList([class$("w-full h-8 flex flex-col justify-center")]),
-    toList([
-      nav(
-        toList([class$("w-full")]),
-        toList([
-          ul(
-            toList([class$("flex w-full")]),
-            (() => {
-              let _pipe = items;
-              return map(
-                _pipe,
-                (item) => {
-                  return li(
-                    toList([class$("mx-auto")]),
-                    toList([
-                      a(
-                        toList([href(item.url)]),
-                        toList([text2(item.title)])
-                      )
-                    ])
-                  );
-                }
-              );
-            })()
-          )
-        ])
+    ];
+  } else if (msg instanceof UserStoppedTimer) {
+    return [
+      model.withFields({ active: false }),
+      from(
+        (dispatch) => {
+          let record = new Record(
+            from_seconds(model.current_time),
+            model.id,
+            model.description
+          );
+          stop2("__timer");
+          return dispatch(new AddRecord(record));
+        }
       )
-    ])
-  );
+    ];
+  } else if (msg instanceof AddRecord) {
+    return [model, none()];
+  } else if (msg instanceof UserUpdatedId) {
+    let id2 = msg.id;
+    return [model.withFields({ id: id2 }), none()];
+  } else {
+    let desc = msg.desc;
+    return [model.withFields({ description: desc }), none()];
+  }
 }
 function timer_button(model) {
   let start_button = button(
@@ -3157,7 +3228,7 @@ function timer_button(model) {
       )
     ])
   );
-  let timer = from_seconds(model.current_timer);
+  let timer = from_seconds(model.current_time);
   let style = (() => {
     if (timer instanceof Time && timer.hours === 0 && timer.minutes === 0) {
       return "text-3xl";
@@ -3177,18 +3248,18 @@ function timer_button(model) {
     toList([
       div(
         toList([class$("text-white text-semibold " + style)]),
-        toList([text2(to_string7(timer))])
+        toList([text2(to_string7(timer, true))])
       )
     ])
   );
-  let $ = model.timer_running;
+  let $ = model.active;
   if ($) {
     return stop_button;
   } else {
     return start_button;
   }
 }
-function view_tracker(model) {
+function view2(model) {
   return div(
     toList([class$("grow")]),
     toList([
@@ -3225,18 +3296,25 @@ function view_tracker(model) {
                         toList([
                           name("selected-work-item"),
                           id("work-item"),
+                          disabled(model.active),
                           class$(
                             "text-bg pl-2 rounded-md sm:min-w-64 min-w-full"
+                          ),
+                          value(model.id),
+                          on_input(
+                            (var0) => {
+                              return new UserUpdatedId(var0);
+                            }
                           )
                         ]),
                         (() => {
                           let _pipe = model.work_items;
                           return map(
                             _pipe,
-                            (work_item2) => {
+                            (work_item) => {
                               return option(
-                                toList([value(work_item2.id)]),
-                                work_item2.label
+                                toList([value(work_item.id)]),
+                                work_item.label
                               );
                             }
                           );
@@ -3264,8 +3342,15 @@ function view_tracker(model) {
                         toList([
                           name("task-description"),
                           id("task-description"),
+                          disabled(model.active),
                           class$(
                             "text-bg pl-2 rounded-md sm:min-w-64 min-w-full"
+                          ),
+                          value(model.description),
+                          on_input(
+                            (var0) => {
+                              return new UserUpdatedDescription(var0);
+                            }
                           )
                         ])
                       )
@@ -3287,6 +3372,107 @@ function view_tracker(model) {
       )
     ])
   );
+}
+
+// build/dev/javascript/timetracker_gleam/pages/work_items.mjs
+var Model4 = class extends CustomType {
+  constructor(modal_open, work_items, new_work_item_id, new_work_item_label) {
+    super();
+    this.modal_open = modal_open;
+    this.work_items = work_items;
+    this.new_work_item_id = new_work_item_id;
+    this.new_work_item_label = new_work_item_label;
+  }
+};
+var UserOpenedNewItemModal = class extends CustomType {
+};
+var UserClosedNewItemModal = class extends CustomType {
+};
+var UserUpdatedInputOfNewWorkItemId = class extends CustomType {
+  constructor(id2) {
+    super();
+    this.id = id2;
+  }
+};
+var UserUpdatedInputOfNewWorkItemLabel = class extends CustomType {
+  constructor(label2) {
+    super();
+    this.label = label2;
+  }
+};
+var UserAttemptedToAddNewItem = class extends CustomType {
+  constructor(id2, label2) {
+    super();
+    this.id = id2;
+    this.label = label2;
+  }
+};
+var UserDeletedWorkItem = class extends CustomType {
+  constructor(work_item) {
+    super();
+    this.work_item = work_item;
+  }
+};
+function init7(global_model) {
+  return new Model4(false, global_model.work_items, "", "");
+}
+function update3(model, msg) {
+  if (msg instanceof UserOpenedNewItemModal) {
+    return [
+      model.withFields({
+        modal_open: true,
+        new_work_item_id: "",
+        new_work_item_label: ""
+      }),
+      from((_) => {
+        return focusInput("id-work-item");
+      })
+    ];
+  } else if (msg instanceof UserDeletedWorkItem) {
+    let wi = msg.work_item;
+    let work_items = (() => {
+      let _pipe = model.work_items;
+      return filter(_pipe, (wi_) => {
+        return wi_.id !== wi.id;
+      });
+    })();
+    return [
+      model.withFields({ work_items }),
+      from(
+        (_) => {
+          return writeWorkItemsToLocalStorage(work_items);
+        }
+      )
+    ];
+  } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
+    let new_work_item_id = msg.id;
+    return [
+      model.withFields({ new_work_item_id }),
+      none()
+    ];
+  } else if (msg instanceof UserUpdatedInputOfNewWorkItemLabel) {
+    let new_work_item_label = msg.label;
+    return [
+      model.withFields({ new_work_item_label }),
+      none()
+    ];
+  } else if (msg instanceof UserClosedNewItemModal) {
+    return [model.withFields({ modal_open: false }), none()];
+  } else {
+    let id2 = msg.id;
+    let label2 = msg.label;
+    let work_item = new WorkItem(id2, label2);
+    let work_items = append2(model.work_items, toList([work_item]));
+    return [
+      model.withFields({ work_items }),
+      from(
+        (dispatch) => {
+          writeWorkItemsToLocalStorage(work_items);
+          return dispatch(new UserClosedNewItemModal());
+        }
+      )
+    ];
+  }
 }
 function work_items_table(model) {
   let headers = (() => {
@@ -3367,7 +3553,7 @@ function work_items_table(model) {
 }
 function work_item_modal(model) {
   let $ = (() => {
-    let $1 = model.new_work_item_modal_open;
+    let $1 = model.modal_open;
     if ($1) {
       return ["block", ""];
     } else {
@@ -3492,7 +3678,7 @@ function work_item_modal(model) {
     ])
   );
 }
-function view_work_items(model) {
+function view3(model) {
   return div(
     toList([class$("flex flex-col gap-4")]),
     toList([
@@ -3503,258 +3689,261 @@ function view_work_items(model) {
           on_click(new UserOpenedNewItemModal())
         ]),
         toList([text2("Add new item")])
-      )
+      ),
+      work_item_modal(model)
     ])
   );
 }
-function view_analytics(model) {
-  return div(toList([]), toList([]));
+
+// build/dev/javascript/timetracker_gleam/timetracker_gleam.mjs
+var Model5 = class extends CustomType {
+  constructor(global, tracker, work_items, analytics) {
+    super();
+    this.global = global;
+    this.tracker = tracker;
+    this.work_items = work_items;
+    this.analytics = analytics;
+  }
+};
+var OnRouteChange = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var UpdatedWorkItems = class extends CustomType {
+  constructor(work_items) {
+    super();
+    this.work_items = work_items;
+  }
+};
+var AddRecord2 = class extends CustomType {
+  constructor(rec) {
+    super();
+    this.rec = rec;
+  }
+};
+var FromTrackerPage = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var FromWorkItemPage = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var FromAnalyticsPage = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var NavItem = class extends CustomType {
+  constructor(url, title, route) {
+    super();
+    this.url = url;
+    this.title = title;
+    this.route = route;
+  }
+};
+function on_url_change(uri) {
+  let _pipe = on_route_change(uri);
+  return new OnRouteChange(_pipe);
 }
-function view(model) {
-  let nav_items = toList([
-    new NavItem("/", "Tracker", new Tracker()),
-    new NavItem("/work-items", "Work Items", new WorkItems()),
-    new NavItem("/analytics", "Analytics", new Analytics())
-  ]);
-  let page_content = (() => {
-    let $ = model.current_route;
-    if ($ instanceof Tracker) {
-      return view_tracker(model);
-    } else if ($ instanceof WorkItems) {
-      return view_work_items(model);
+function init8(_) {
+  let global_model = init4();
+  let model = new Model5(
+    global_model,
+    init6(global_model),
+    init7(global_model),
+    init5(global_model)
+  );
+  let my_effect = batch(toList([init2(on_url_change)]));
+  return [model, my_effect];
+}
+function update4(model, msg) {
+  let $ = (() => {
+    if (msg instanceof OnRouteChange) {
+      let route = msg[0];
+      return [
+        model.withFields({
+          global: model.global.withFields({ current_route: route })
+        }),
+        none()
+      ];
+    } else if (msg instanceof FromAnalyticsPage) {
+      let msg$1 = msg[0];
+      let $1 = update(model.analytics, msg$1);
+      let m = $1[0];
+      let e = $1[1];
+      return [
+        model.withFields({ analytics: m }),
+        map4(e, (var0) => {
+          return new FromAnalyticsPage(var0);
+        })
+      ];
+    } else if (msg instanceof FromTrackerPage) {
+      let msg$1 = msg[0];
+      let $1 = update2(model.tracker, msg$1);
+      let m = $1[0];
+      let e = $1[1];
+      let e$1 = map4(e, (var0) => {
+        return new FromTrackerPage(var0);
+      });
+      let global_effect = from(
+        (dispatch) => {
+          if (msg$1 instanceof AddRecord) {
+            let rec = msg$1.record;
+            dispatch(new AddRecord2(rec));
+          } else {
+          }
+          return void 0;
+        }
+      );
+      return [
+        model.withFields({ tracker: m }),
+        batch(toList([e$1, global_effect]))
+      ];
+    } else if (msg instanceof FromWorkItemPage) {
+      let msg$1 = msg[0];
+      let $1 = update3(model.work_items, msg$1);
+      let m = $1[0];
+      let e = $1[1];
+      let e$1 = map4(e, (var0) => {
+        return new FromWorkItemPage(var0);
+      });
+      let global_effect = (dispatch) => {
+        if (msg$1 instanceof UserAttemptedToAddNewItem) {
+          return dispatch(new UpdatedWorkItems(m.work_items));
+        } else if (msg$1 instanceof UserDeletedWorkItem) {
+          return dispatch(new UpdatedWorkItems(m.work_items));
+        } else {
+          return void 0;
+        }
+      };
+      return [
+        model.withFields({ work_items: m }),
+        batch(toList([e$1, from(global_effect)]))
+      ];
+    } else if (msg instanceof UpdatedWorkItems) {
+      let wis = msg.work_items;
+      let global = model.global.withFields({ work_items: wis });
+      let tracker = model.tracker.withFields({ work_items: wis });
+      return [
+        model.withFields({ global, tracker }),
+        none()
+      ];
     } else {
-      return view_analytics(model);
+      let rec = msg.rec;
+      let recs = append2(model.global.records, toList([rec]));
+      let global = model.global.withFields({ records: recs });
+      let analytics = new Model2(recs);
+      return [
+        model.withFields({ global, analytics }),
+        from(
+          (_) => {
+            return writeRecordsToLocalStorage(recs);
+          }
+        )
+      ];
     }
   })();
-  return body(
+  let model$1 = $[0];
+  let effect_ = $[1];
+  return [model$1, effect_];
+}
+function nav_bar(items) {
+  return div(
+    toList([class$("w-full h-8 flex flex-col justify-center")]),
     toList([
-      on_keypress(
-        (_capture) => {
-          return new UserPressedKey(_capture, model.current_route);
-        }
-      )
-    ]),
-    toList([
-      div(
+      nav(
+        toList([class$("w-full")]),
         toList([
-          class$(
-            "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4"
+          ul(
+            toList([class$("flex w-full")]),
+            (() => {
+              let _pipe = items;
+              return map(
+                _pipe,
+                (item) => {
+                  return li(
+                    toList([class$("mx-auto")]),
+                    toList([
+                      a(
+                        toList([href(item.url)]),
+                        toList([text2(item.title)])
+                      )
+                    ])
+                  );
+                }
+              );
+            })()
           )
-        ]),
-        toList([
-          header(),
-          horizontal_bar(),
-          nav_bar(nav_items),
-          horizontal_bar(),
-          page_content,
-          work_item_modal(model)
         ])
       )
     ])
   );
 }
-function write_model_to_local_storage(model) {
-  let s_count = to_string2(model.count);
-  return writeToLocalStorage("count", s_count);
-}
-function init4(_) {
-  let $ = local_storage_from_json(
-    readModelInfoFromLocalStorage()
-  );
-  if (!$.isOk()) {
-    throw makeError(
-      "assignment_no_match",
-      "timetracker_gleam",
-      48,
-      "init",
-      "Assignment pattern did not match",
-      { value: $ }
-    );
-  }
-  let local_storage_model2 = $[0];
-  let my_effect = batch(toList([init2(on_url_change)]));
-  return [
-    new Model(
-      init3(),
-      local_storage_model2.count,
-      "",
-      toList([]),
-      local_storage_model2.work_items,
-      "",
-      "",
-      false,
-      0,
-      false,
-      toList([])
-    ),
-    my_effect
-  ];
-}
-function every2(interval, tick) {
-  return from(
-    (dispatch) => {
-      return every("__timer", interval, () => {
-        return dispatch(tick);
-      });
-    }
-  );
-}
-function update(model, msg) {
-  let model$1 = (() => {
-    if (msg instanceof UserIncrementedCount) {
-      return model.withFields({ count: model.count + 1 });
-    } else if (msg instanceof UserDecrementedCount) {
-      let $ = model.count > 1;
-      if ($) {
-        return model.withFields({ count: model.count - 1 });
-      } else {
-        return model.withFields({ count: 0 });
-      }
-    } else if (msg instanceof UserResetCount) {
-      return model.withFields({ count: 0 });
-    } else if (msg instanceof OnRouteChange) {
-      let route = msg[0];
-      println("On route change triggered");
-      return model.withFields({ current_route: route });
-    } else if (msg instanceof UserOpenedNewItemModal) {
-      return model.withFields({ new_work_item_modal_open: true });
-    } else if (msg instanceof UserClosedNewItemModal) {
-      return model.withFields({
-        new_work_item_modal_open: false,
-        new_work_item_id: "",
-        new_work_item_label: ""
-      });
-    } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
-      let id2 = msg.id;
-      return model.withFields({ new_work_item_id: id2 });
-    } else if (msg instanceof UserUpdatedInputOfNewWorkItemLabel) {
-      let label2 = msg.label;
-      return model.withFields({ new_work_item_label: label2 });
-    } else if (msg instanceof UserAttemptedToAddNewItem) {
-      let id2 = msg.id;
-      let label2 = msg.label;
-      let new_work_item = new WorkItem(id2, label2);
-      return model.withFields({
-        work_items: append(model.work_items, toList([new_work_item]))
-      });
-    } else if (msg instanceof UserDeletedWorkItem) {
-      let work_item2 = msg.work_item;
-      return model.withFields({
-        work_items: (() => {
-          let _pipe = model.work_items;
-          return filter(_pipe, (wi) => {
-            return wi.id !== work_item2.id;
-          });
-        })()
-      });
-    } else if (msg instanceof UserPressedKey) {
-      let key = msg.key;
-      let route = msg.route;
-      return model;
-    } else if (msg instanceof UserStartedTimer) {
-      return model.withFields({ current_timer: 0, timer_running: true });
-    } else if (msg instanceof UserStoppedTimer) {
-      return model.withFields({
-        timer_running: false,
-        records: append(
-          model.records,
-          toList([
-            new Record(
-              from_seconds(model.current_timer),
-              new WorkItem("Test", "Test")
-            )
-          ])
-        )
-      });
-    } else {
-      return model.withFields({ current_timer: model.current_timer + 1 });
-    }
-  })();
-  let persist_model = (_) => {
-    return write_model_to_local_storage(model$1);
-  };
-  let effect = (() => {
-    if (msg instanceof UserIncrementedCount) {
-      return from(persist_model);
-    } else if (msg instanceof UserDecrementedCount) {
-      return from(persist_model);
-    } else if (msg instanceof UserResetCount) {
-      return from(persist_model);
-    } else if (msg instanceof OnRouteChange) {
-      return none();
-    } else if (msg instanceof UserOpenedNewItemModal) {
-      return from((_) => {
-        return focusInput("id-work-item");
-      });
-    } else if (msg instanceof UserClosedNewItemModal) {
-      return from((_) => {
-        return void 0;
-      });
-    } else if (msg instanceof UserUpdatedInputOfNewWorkItemId) {
-      let id2 = msg.id;
-      return none();
-    } else if (msg instanceof UserUpdatedInputOfNewWorkItemLabel) {
-      let label2 = msg.label;
-      return none();
-    } else if (msg instanceof UserAttemptedToAddNewItem) {
-      let id2 = msg.id;
-      let label2 = msg.label;
-      return from(
-        (dispatch) => {
-          writeWorkItemsToLocalStorage(model$1.work_items);
-          return dispatch(new UserClosedNewItemModal());
+function view4(model) {
+  let nav_items = toList([
+    new NavItem("/", "Tracker", new Tracker()),
+    new NavItem("/work-items", "Work Items", new WorkItems()),
+    new NavItem("/analytics", "Analytics", new Analytics())
+  ]);
+  let contents = (() => {
+    let $ = model.global.current_route;
+    if ($ instanceof Tracker) {
+      let _pipe = view2(model.tracker);
+      return map6(
+        _pipe,
+        (var0) => {
+          return new FromTrackerPage(var0);
         }
       );
-    } else if (msg instanceof UserDeletedWorkItem) {
-      let work_item2 = msg.work_item;
-      return from(
-        (_) => {
-          return writeWorkItemsToLocalStorage(model$1.work_items);
-        }
-      );
-    } else if (msg instanceof UserPressedKey) {
-      let key = msg.key;
-      let route = msg.route;
-      return from(
-        (dispatch) => {
-          if (route instanceof WorkItems) {
-            if (key === "N") {
-              return dispatch(new UserOpenedNewItemModal());
-            } else if (key === "n") {
-              return dispatch(new UserOpenedNewItemModal());
-            } else {
-              return void 0;
-            }
-          } else {
-            return void 0;
-          }
-        }
-      );
-    } else if (msg instanceof UserStartedTimer) {
-      return every2(1e3, new TimerUpdate());
-    } else if (msg instanceof UserStoppedTimer) {
-      return from(
-        (_) => {
-          debug(model$1.records);
-          return stop2("__timer");
+    } else if ($ instanceof Analytics) {
+      let _pipe = view(model.analytics);
+      return map6(
+        _pipe,
+        (var0) => {
+          return new FromAnalyticsPage(var0);
         }
       );
     } else {
-      return from((_) => {
-        return void 0;
-      });
+      let _pipe = view3(model.work_items);
+      return map6(
+        _pipe,
+        (var0) => {
+          return new FromWorkItemPage(var0);
+        }
+      );
     }
   })();
-  return [model$1, effect];
+  return div(
+    toList([
+      class$(
+        "text-white container p-4 mx-auto max-w-5xl sm:mt-8 mt-4 flex flex-col gap-4"
+      )
+    ]),
+    toList([
+      header(),
+      horizontal_bar(),
+      nav_bar(nav_items),
+      horizontal_bar(),
+      contents
+    ])
+  );
 }
 function main() {
-  let app = application(init4, update, view);
+  let app = application(init8, update4, view4);
   let $ = start3(app, "#app", void 0);
   if (!$.isOk()) {
     throw makeError(
       "assignment_no_match",
       "timetracker_gleam",
-      549,
+      189,
       "main",
       "Assignment pattern did not match",
       { value: $ }
