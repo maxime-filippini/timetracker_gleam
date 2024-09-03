@@ -3114,7 +3114,20 @@ function analytics_table(model) {
   );
 }
 function view(model) {
-  return analytics_table(model);
+  return div(
+    toList([class$("flex flex-col gap-8 mt-4")]),
+    toList([
+      p(
+        toList([class$("italic")]),
+        toList([
+          text2(
+            "This is a work in progress. For now, this only shows the full list of records, but it will be more fleshed out at a later stage."
+          )
+        ])
+      ),
+      analytics_table(model)
+    ])
+  );
 }
 
 // build/dev/javascript/timetracker_gleam/pages/tracker.mjs
@@ -3215,7 +3228,7 @@ function timer_button(model) {
       class$(
         "rounded-full sm:h-4/5 h-32 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center"
       ),
-      on_click(new UserStartedTimer())
+      type_("submit")
     ]),
     toList([
       div(
@@ -3243,7 +3256,7 @@ function timer_button(model) {
       class$(
         "rounded-full sm:h-4/5 h-32 aspect-square bg-red-500 hover:bg-red-600 duration-200 border-[3px] border-red-900 flex items-center justify-center"
       ),
-      on_click(new UserStoppedTimer())
+      type_("submit")
     ]),
     toList([
       div(
@@ -3260,6 +3273,14 @@ function timer_button(model) {
   }
 }
 function view2(model) {
+  let ev = (() => {
+    let $ = model.active;
+    if ($) {
+      return on_submit(new UserStoppedTimer());
+    } else {
+      return on_submit(new UserStartedTimer());
+    }
+  })();
   return div(
     toList([class$("grow")]),
     toList([
@@ -3270,10 +3291,15 @@ function view2(model) {
           )
         ]),
         toList([
-          div(
-            toList([class$("flex-col px-8")]),
+          form(
             toList([
-              form(
+              class$(
+                "px-8 flex justify-center gap-8 items-center h-full sm:flex-nowrap flex-wrap"
+              ),
+              ev
+            ]),
+            toList([
+              div(
                 toList([class$("flex flex-col gap-4 sm:w-full w-64")]),
                 toList([
                   div(
@@ -3357,16 +3383,16 @@ function view2(model) {
                     ])
                   )
                 ])
+              ),
+              div(
+                toList([
+                  class$(
+                    "sm:grow-0 sm:h-full grow flex items-center justify-center"
+                  )
+                ]),
+                toList([timer_button(model)])
               )
             ])
-          ),
-          div(
-            toList([
-              class$(
-                "sm:grow-0 sm:h-full grow flex items-center justify-center"
-              )
-            ]),
-            toList([timer_button(model)])
           )
         ])
       )
