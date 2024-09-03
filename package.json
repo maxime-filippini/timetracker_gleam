@@ -2,6 +2,7 @@
   "scripts": {
     "tw_dev": "npx tailwindcss -i ./priv/input.css -o ./priv/static/timetracker_gleam.css --watch",
     "tw_build": "npx tailwindcss -i ./priv/input.css -o ./dist/stylesheets/styles.css",
-    "dev": "gleam run -m lustre/dev start --detect-tailwind=True --tailwind-entry=./priv/input.css"
+    "dev": "gleam run -m lustre/dev start --detect-tailwind=True --tailwind-entry=./priv/input.css",
+    "build": "gleam run -m lustre/dev build app --minify --ext=.min.js --detect-tailwind=True --tailwind-entry=./priv/input.css"
   }
 }
