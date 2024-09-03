@@ -24,7 +24,14 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 }
 
 pub fn view(model: Model) -> Element(Msg) {
-  analytics_table(model)
+  html.div([attribute.class("flex flex-col gap-8 mt-4")], [
+    html.p([attribute.class("italic")], [
+      html.text(
+        "This is a work in progress. For now, this only shows the full list of records, but it will be more fleshed out at a later stage.",
+      ),
+    ]),
+    analytics_table(model),
+  ])
 }
 
 fn analytics_table(model: Model) {

@@ -82,6 +82,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 }
 
 pub fn view(model: Model) -> Element(Msg) {
+  let ev = case model.active {
+    True -> event.on_submit(UserStoppedTimer)
+    False -> event.on_submit(UserStartedTimer)
+  }
+
   html.div([attribute.class("grow")], [
     html.div(
       [
@@ -90,78 +95,86 @@ pub fn view(model: Model) -> Element(Msg) {
         ),
       ],
       [
-        html.div([attribute.class("flex-col px-8")], [
-          html.form([attribute.class("flex flex-col gap-4 sm:w-full w-64")], [
-            html.div(
-              [
-                attribute.class(
-                  "flex gap-2 sm:flex-nowrap flex-wrap justify-center",
-                ),
-              ],
-              [
-                html.label(
-                  [
-                    attribute.for("work-item"),
-                    attribute.class("sm:min-w-32 min-w-full text-center"),
-                  ],
-                  [html.text("Work item")],
-                ),
-                html.select(
-                  [
-                    attribute.name("selected-work-item"),
-                    attribute.id("work-item"),
+        html.form(
+          [
+            attribute.class(
+              "px-8 flex justify-center gap-8 items-center h-full sm:flex-nowrap flex-wrap",
+            ),
+            ev,
+          ],
+          [
+            html.div([attribute.class("flex flex-col gap-4 sm:w-full w-64")], [
+              html.div(
+                [
+                  attribute.class(
+                    "flex gap-2 sm:flex-nowrap flex-wrap justify-center",
+                  ),
+                ],
+                [
+                  html.label(
+                    [
+                      attribute.for("work-item"),
+                      attribute.class("sm:min-w-32 min-w-full text-center"),
+                    ],
+                    [html.text("Work item")],
+                  ),
+                  html.select(
+                    [
+                      attribute.name("selected-work-item"),
+                      attribute.id("work-item"),
+                      attribute.disabled(model.active),
+                      attribute.class(
+                        "text-bg pl-2 rounded-md sm:min-w-64 min-w-full",
+                      ),
+                      attribute.value(model.id),
+                      event.on_input(UserUpdatedId),
+                    ],
+                    model.work_items
+                      |> list.map(fn(work_item) {
+                        html.option(
+                          [attribute.value(work_item.id)],
+                          work_item.label,
+                        )
+                      }),
+                  ),
+                ],
+              ),
+              html.div(
+                [
+                  attribute.class(
+                    "flex gap-2 sm:flex-nowrap flex-wrap justify-center",
+                  ),
+                ],
+                [
+                  html.label(
+                    [
+                      attribute.for("work-item"),
+                      attribute.class("sm:min-w-32 min-w-full text-center"),
+                    ],
+                    [html.text("Description")],
+                  ),
+                  html.input([
+                    attribute.name("task-description"),
+                    attribute.id("task-description"),
                     attribute.disabled(model.active),
                     attribute.class(
                       "text-bg pl-2 rounded-md sm:min-w-64 min-w-full",
                     ),
-                    attribute.value(model.id),
-                    event.on_input(UserUpdatedId),
-                  ],
-                  model.work_items
-                    |> list.map(fn(work_item) {
-                      html.option(
-                        [attribute.value(work_item.id)],
-                        work_item.label,
-                      )
-                    }),
-                ),
-              ],
-            ),
+                    attribute.value(model.description),
+                    event.on_input(UserUpdatedDescription),
+                  ]),
+                ],
+              ),
+            ]),
             html.div(
               [
                 attribute.class(
-                  "flex gap-2 sm:flex-nowrap flex-wrap justify-center",
+                  "sm:grow-0 sm:h-full grow flex items-center justify-center",
                 ),
               ],
-              [
-                html.label(
-                  [
-                    attribute.for("work-item"),
-                    attribute.class("sm:min-w-32 min-w-full text-center"),
-                  ],
-                  [html.text("Description")],
-                ),
-                html.input([
-                  attribute.name("task-description"),
-                  attribute.id("task-description"),
-                  attribute.disabled(model.active),
-                  attribute.class(
-                    "text-bg pl-2 rounded-md sm:min-w-64 min-w-full",
-                  ),
-                  attribute.value(model.description),
-                  event.on_input(UserUpdatedDescription),
-                ]),
-              ],
-            ),
-          ]),
-        ]),
-        html.div(
-          [
-            attribute.class(
-              "sm:grow-0 sm:h-full grow flex items-center justify-center",
+              [timer_button(model)],
             ),
           ],
-          [timer_button(model)],
         ),
       ],
     ),
@@ -175,7 +188,7 @@ fn timer_button(model: Model) {
         attribute.class(
           "rounded-full sm:h-4/5 h-32 aspect-square bg-green-500 hover:bg-green-600 duration-200 border-[3px] border-green-900 flex items-center justify-center",
         ),
-        event.on_click(UserStartedTimer),
+        attribute.type_("submit"),
       ],
       [
         html.div(
@@ -203,7 +216,7 @@ fn timer_button(model: Model) {
         attribute.class(
           "rounded-full sm:h-4/5 h-32 aspect-square bg-red-500 hover:bg-red-600 duration-200 border-[3px] border-red-900 flex items-center justify-center",
         ),
-        event.on_click(UserStoppedTimer),
+        attribute.type_("submit"),
       ],
       [
         html.div([attribute.class("text-white text-semibold " <> style)], [
