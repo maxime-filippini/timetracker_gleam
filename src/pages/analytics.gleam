@@ -4,7 +4,6 @@ import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
-import lustre/event
 import time
 
 pub type Model {
@@ -19,7 +18,7 @@ pub fn init(global_model: global.Model) -> Model {
   Model(records: global_model.records)
 }
 
-pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
+pub fn update(model: Model, _msg: Msg) -> #(Model, Effect(Msg)) {
   #(model, effect.none())
 }
 
