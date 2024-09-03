@@ -3004,40 +3004,6 @@ function init4() {
   );
 }
 
-// build/dev/javascript/lustre/lustre/event.mjs
-function on2(name2, handler) {
-  return on(name2, handler);
-}
-function on_click(msg) {
-  return on2("click", (_) => {
-    return new Ok(msg);
-  });
-}
-function value2(event2) {
-  let _pipe = event2;
-  return field("target", field("value", string))(
-    _pipe
-  );
-}
-function on_input(msg) {
-  return on2(
-    "input",
-    (event2) => {
-      let _pipe = value2(event2);
-      return map2(_pipe, msg);
-    }
-  );
-}
-function on_submit(msg) {
-  return on2(
-    "submit",
-    (event2) => {
-      let $ = prevent_default(event2);
-      return new Ok(msg);
-    }
-  );
-}
-
 // build/dev/javascript/timetracker_gleam/pages/analytics.mjs
 var Model2 = class extends CustomType {
   constructor(records) {
@@ -3048,7 +3014,7 @@ var Model2 = class extends CustomType {
 function init5(global_model) {
   return new Model2(global_model.records);
 }
-function update(model, msg) {
+function update(model, _) {
   return [model, none()];
 }
 function analytics_table(model) {
@@ -3127,6 +3093,40 @@ function view(model) {
       ),
       analytics_table(model)
     ])
+  );
+}
+
+// build/dev/javascript/lustre/lustre/event.mjs
+function on2(name2, handler) {
+  return on(name2, handler);
+}
+function on_click(msg) {
+  return on2("click", (_) => {
+    return new Ok(msg);
+  });
+}
+function value2(event2) {
+  let _pipe = event2;
+  return field("target", field("value", string))(
+    _pipe
+  );
+}
+function on_input(msg) {
+  return on2(
+    "input",
+    (event2) => {
+      let _pipe = value2(event2);
+      return map2(_pipe, msg);
+    }
+  );
+}
+function on_submit(msg) {
+  return on2(
+    "submit",
+    (event2) => {
+      let $ = prevent_default(event2);
+      return new Ok(msg);
+    }
   );
 }
 
